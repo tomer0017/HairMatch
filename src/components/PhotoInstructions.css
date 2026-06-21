@@ -1,0 +1,32 @@
+.instructions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.instructions__guide {
+  flex-shrink: 0;
+  width: 76px;
+  height: 76px;
+  border-radius: var(--radius-md);
+  background: var(--color-accent-soft);
+  display: grid;
+  place-items: center;
+  color: var(--color-accent-deep);
+}
+
+.instructions__guide svg {
+  width: 48px;
+  height: 48px;
+}
+
+.instructions__title {
+  font-size: 1.4rem;
+  margin-bottom: 4px;
+}
+
+.instructions__body {
+  font-size: 0.98rem;
+  color: var(--color-text-soft);
+  line-height: 1.5;
+}

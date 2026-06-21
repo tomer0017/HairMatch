@@ -1,0 +1,217 @@
+/* ============================================================
+   Global design system — premium beauty consultation aesthetic
+   White background, soft warm neutrals, elegant typography.
+   Mobile-first, RTL.
+   ============================================================ */
+
+:root {
+  /* Warm neutral palette */
+  --color-bg: #fbf9f6;
+  --color-surface: #ffffff;
+  --color-surface-soft: #f6f1ea;
+  --color-border: #ece4d8;
+  --color-border-strong: #ddd0bd;
+
+  /* Accent — muted gold / champagne */
+  --color-accent: #c9a66b;
+  --color-accent-deep: #b48f50;
+  --color-accent-soft: #f3ead9;
+
+  /* Text */
+  --color-text: #2c2823;
+  --color-text-soft: #6f675c;
+  --color-text-muted: #9b9286;
+
+  /* Feedback */
+  --color-success: #4f8a6b;
+  --color-success-soft: #e7f1ea;
+  --color-error: #c06a5b;
+  --color-error-soft: #f7e9e6;
+
+  /* Shape */
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --radius-pill: 999px;
+
+  /* Shadows — soft and diffuse */
+  --shadow-soft: 0 10px 30px rgba(120, 100, 70, 0.08);
+  --shadow-card: 0 18px 48px rgba(120, 100, 70, 0.12);
+  --shadow-button: 0 10px 24px rgba(180, 143, 80, 0.28);
+
+  /* Typography */
+  --font-body: 'Heebo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Frank Ruhl Libre', 'Heebo', serif;
+
+  /* Layout */
+  --content-max: 460px;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100dvh;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* App shell — centers content, keeps mobile-first column */
+.app-shell {
+  flex: 1;
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: clamp(20px, 5vw, 32px) clamp(18px, 5vw, 28px)
+    calc(28px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 18px 24px;
+  font-size: 1.075rem;
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease,
+    opacity 0.2s ease;
+  min-height: 58px;
+}
+
+.btn:active {
+  transform: scale(0.985);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-deep));
+  color: #fff;
+  box-shadow: var(--shadow-button);
+}
+
+.btn-primary:disabled {
+  background: var(--color-border-strong);
+  color: #fff;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1.5px solid var(--color-border-strong);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-accent-deep);
+  font-weight: 600;
+  min-height: 48px;
+  padding: 12px;
+}
+
+.btn-row {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-row .btn {
+  flex: 1;
+}
+
+/* ---------- Card ---------- */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+/* ---------- Utility ---------- */
+.fade-in {
+  animation: fadeIn 0.45s ease both;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

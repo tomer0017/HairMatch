@@ -1,0 +1,29 @@
+.review-page {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  flex: 1;
+}
+
+.review-page__actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: sticky;
+  bottom: 0;
+  padding-top: 16px;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: linear-gradient(
+    to top,
+    var(--color-bg) 70%,
+    transparent
+  );
+}
+
+.review-page__hint {
+  text-align: center;
+  font-size: 0.84rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}

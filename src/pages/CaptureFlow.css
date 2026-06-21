@@ -1,0 +1,43 @@
+.capture {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+}
+
+.capture__topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.capture__back {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border-strong);
+  color: var(--color-text);
+  font-size: 1.5rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+
+.capture__back:active {
+  background: var(--color-surface-soft);
+}
+
+.capture__topbar .progress {
+  flex: 1;
+}
+
+.capture__feedback {
+  min-height: 8px;
+}
+
+.capture__actions {
+  margin-top: auto;
+  padding-top: 4px;
+}

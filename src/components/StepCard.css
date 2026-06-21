@@ -1,0 +1,63 @@
+.step-card {
+  margin: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+}
+
+.step-card__media {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  background: var(--color-surface-soft);
+}
+
+.step-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.step-card__badge {
+  position: absolute;
+  top: 8px;
+  inset-inline-start: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(28, 24, 20, 0.55);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+}
+
+.step-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+
+.step-card__label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.step-card__retake {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-accent-deep);
+  padding: 4px 2px;
+}
+
+.step-card__retake:active {
+  opacity: 0.7;
+}
