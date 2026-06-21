@@ -47,7 +47,10 @@ export interface QualityMetrics {
   /** Median perceived luminance of the central crop, 0–255. */
   centerMedianLuminance: number;
   overExposure: number;
-  sharpness: number;
+  /** Laplacian variance (blur metric); higher = sharper. */
+  laplacianVariance: number;
+  /** Strong-edge density (blur metric), 0–1; higher = sharper. */
+  edgeDensity: number;
   width: number;
   height: number;
 }

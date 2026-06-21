@@ -1,18 +1,25 @@
 import type { QualityResult, ValidationIssue } from '../types';
 import { calculateDarknessMetrics, calculateOverExposure } from './brightness';
-import { calculateSharpness } from './sharpness';
+import { analyzeSharpness } from './sharpness';
 
 /**
  * Local, in-browser image quality analysis.
  *
  * Everything here runs on a <canvas> against a downscaled copy of the photo —
- * no network, no upload, no persistence. The downscale (ANALYSIS_SIZE) keeps
- * the pixel loops fast on mobile while preserving enough detail for the
- * brightness/exposure/blur heuristics.
+ * no network, no upload, no persistence.
+ *
+ * We use two canvas sizes on purpose: a small one (ANALYSIS_SIZE) for the cheap
+ * brightness/exposure histograms, and a larger one (SHARPNESS_SIZE) for blur
+ * detection. Motion blur is a low-frequency effect that a heavy downscale
+ * smooths away, so judging sharpness on the tiny canvas would let smeared
+ * photos through.
  */
 
-/** Longest edge (px) used for the analysis canvas. */
+/** Longest edge (px) used for the brightness/exposure canvas. */
 const ANALYSIS_SIZE = 480;
+
+/** Longest edge (px) used for the (larger) blur-detection canvas. */
+const SHARPNESS_SIZE = 1000;
 
 /**
  * Tuning thresholds.
@@ -38,8 +45,19 @@ const THRESHOLDS = {
   },
   /** Above this share of blown-out pixels (0–1) the image is overexposed. */
   overExposureAbove: 0.35,
-  /** Below this Laplacian variance the image is considered blurry. */
-  sharpnessBelow: 60,
+  /**
+   * Blur is judged by two metrics on the larger canvas. The image is rejected
+   * only when BOTH fall short — sharp photos reliably clear at least one, while
+   * motion / defocus / smudge blur drags both down together. Tuned to favour
+   * rejecting borderline shots; use the dev-mode logs below to recalibrate
+   * against real device photos.
+   */
+  blur: {
+    /** Below this Laplacian variance there is little high-frequency detail. */
+    laplacianBelow: 130,
+    /** Below this strong-edge density (0–1) the frame has few crisp edges. */
+    edgeDensityBelow: 0.055,
+  },
   /** Minimum original resolution on the shortest edge (px). */
   minShortEdge: 600,
 };
@@ -47,17 +65,21 @@ const THRESHOLDS = {
 const MESSAGES: Record<ValidationIssue['code'], string> = {
   dark: 'התמונה חשוכה מדי. עברי למקום מואר יותר וצלמי שוב.',
   bright: 'התמונה בהירה מדי. נסי להימנע משמש ישירה או תאורה חזקה.',
-  blurry: 'התמונה מטושטשת. נקי את העדשה וצלמי שוב.',
+  blurry: 'התמונה מטושטשת מדי. אנא החזיקי את המצלמה יציבה וצלמי שוב.',
   resolution: 'איכות התמונה נמוכה מדי. אנא צלמי שוב.',
 };
 
-/** Draw a bitmap onto a downscaled canvas and return its 2D context + size. */
-function createAnalysisCanvas(
+/**
+ * Draw a bitmap onto a downscaled canvas (longest edge clamped to maxSize) and
+ * return its pixel data + size.
+ */
+function readScaledPixels(
   source: ImageBitmap | HTMLImageElement,
   sourceWidth: number,
   sourceHeight: number,
-): { ctx: CanvasRenderingContext2D; width: number; height: number } {
-  const scale = Math.min(1, ANALYSIS_SIZE / Math.max(sourceWidth, sourceHeight));
+  maxSize: number,
+): { data: Uint8ClampedArray; width: number; height: number } {
+  const scale = Math.min(1, maxSize / Math.max(sourceWidth, sourceHeight));
   const width = Math.max(1, Math.round(sourceWidth * scale));
   const height = Math.max(1, Math.round(sourceHeight * scale));
 
@@ -71,7 +93,7 @@ function createAnalysisCanvas(
   }
 
   ctx.drawImage(source, 0, 0, width, height);
-  return { ctx, width, height };
+  return { data: ctx.getImageData(0, 0, width, height).data, width, height };
 }
 
 /** Decode a blob into an ImageBitmap, with a fallback for older Safari. */
@@ -106,18 +128,23 @@ async function decodeBlob(
  */
 export async function analyzeImageQuality(blob: Blob): Promise<QualityResult> {
   const { source, width: srcW, height: srcH } = await decodeBlob(blob);
-  const { ctx, width, height } = createAnalysisCanvas(source, srcW, srcH);
 
-  // Release the bitmap as soon as it is drawn.
+  // Brightness/exposure run on the small canvas; blur on the larger one.
+  const small = readScaledPixels(source, srcW, srcH, ANALYSIS_SIZE);
+  const large = readScaledPixels(source, srcW, srcH, SHARPNESS_SIZE);
+
+  // Release the bitmap now that both canvases have been drawn.
   if ('close' in source && typeof source.close === 'function') {
     source.close();
   }
 
-  const { data } = ctx.getImageData(0, 0, width, height);
-
-  const { overall, center } = calculateDarknessMetrics(data, width, height);
-  const overExposure = calculateOverExposure(data);
-  const sharpness = calculateSharpness(data, width, height);
+  const { overall, center } = calculateDarknessMetrics(small.data, small.width, small.height);
+  const overExposure = calculateOverExposure(small.data);
+  const { laplacianVariance, edgeDensity } = analyzeSharpness(
+    large.data,
+    large.width,
+    large.height,
+  );
   const shortEdge = Math.min(srcW, srcH);
 
   const d = THRESHOLDS.darkness;
@@ -129,6 +156,12 @@ export async function analyzeImageQuality(blob: Blob): Promise<QualityResult> {
     center.average < d.centerAverageBelow ||
     center.median < d.centerMedianBelow;
 
+  // Reject only when BOTH blur metrics agree there is too little detail.
+  const lapRatio = laplacianVariance / THRESHOLDS.blur.laplacianBelow;
+  const edgeRatio = edgeDensity / THRESHOLDS.blur.edgeDensityBelow;
+  const sharpnessScore = Math.max(lapRatio, edgeRatio); // < 1 ⇒ both fell short
+  const blurry = sharpnessScore < 1;
+
   const issues: ValidationIssue[] = [];
 
   if (tooDark) {
@@ -137,7 +170,7 @@ export async function analyzeImageQuality(blob: Blob): Promise<QualityResult> {
   if (overExposure > THRESHOLDS.overExposureAbove) {
     issues.push({ code: 'bright', message: MESSAGES.bright });
   }
-  if (sharpness < THRESHOLDS.sharpnessBelow) {
+  if (blurry) {
     issues.push({ code: 'blurry', message: MESSAGES.blurry });
   }
   if (shortEdge < THRESHOLDS.minShortEdge) {
@@ -152,14 +185,15 @@ export async function analyzeImageQuality(blob: Blob): Promise<QualityResult> {
     centerAverageLuminance: center.average,
     centerMedianLuminance: center.median,
     overExposure,
-    sharpness,
+    laplacianVariance,
+    edgeDensity,
     width: srcW,
     height: srcH,
   };
 
-  // Dev-only: surface the darkness metrics that drove the decision.
+  // Dev-only: surface the metrics that drove each decision.
   if (import.meta.env.DEV) {
-    // eslint-disable-next-line no-console
+    /* eslint-disable no-console */
     console.debug('[imageAnalysis] darkness metrics', {
       averageLuminance: metrics.averageLuminance,
       medianLuminance: metrics.medianLuminance,
@@ -169,6 +203,13 @@ export async function analyzeImageQuality(blob: Blob): Promise<QualityResult> {
       centerMedianLuminance: metrics.centerMedianLuminance,
       tooDark,
     });
+    console.debug('[imageAnalysis] sharpness metrics', {
+      laplacianVariance,
+      edgeDensity,
+      sharpnessScore, // normalised to the thresholds; < 1 ⇒ blurry
+      blurry,
+    });
+    /* eslint-enable no-console */
   }
 
   return {

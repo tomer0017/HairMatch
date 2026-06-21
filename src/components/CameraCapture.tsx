@@ -1,5 +1,7 @@
 import type { RefObject } from 'react';
 import type { CameraErrorKind, CameraStatus } from '../hooks/useCamera';
+import type { LightingState } from '../hooks/useLiveLighting';
+import { LightingBadge } from './LightingStatus';
 import './CameraCapture.css';
 
 interface CameraCaptureProps {
@@ -8,6 +10,8 @@ interface CameraCaptureProps {
   errorKind: CameraErrorKind | null;
   /** When set, shows the frozen captured still instead of the live preview. */
   capturedUrl: string | null;
+  /** Live lighting verdict, shown as a pill over the preview. */
+  lightingState?: LightingState;
   /** Retry starting the camera after an error. */
   onRetry: () => void;
 }
@@ -41,8 +45,10 @@ export function CameraCapture({
   status,
   errorKind,
   capturedUrl,
+  lightingState,
   onRetry,
 }: CameraCaptureProps) {
+  const showLivePreview = !capturedUrl && status === 'ready';
   return (
     <div className="camera">
       {/* The video element is always mounted so the ref/stream stays stable;
@@ -55,6 +61,8 @@ export function CameraCapture({
         autoPlay
         data-hidden={capturedUrl !== null || status !== 'ready'}
       />
+
+      {showLivePreview && lightingState && <LightingBadge state={lightingState} />}
 
       {capturedUrl && (
         <img className="camera__still" src={capturedUrl} alt="התמונה שצולמה" />

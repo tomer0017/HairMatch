@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CameraCapture } from '../components/CameraCapture';
+import { LightingWarning } from '../components/LightingStatus';
 import { PhotoInstructions } from '../components/PhotoInstructions';
 import { ProgressBar } from '../components/ProgressBar';
 import { QualityFeedback } from '../components/QualityFeedback';
 import { useCamera } from '../hooks/useCamera';
+import { useLiveLighting } from '../hooks/useLiveLighting';
 import { usePhotoValidation } from '../hooks/usePhotoValidation';
 import type { CapturedPhoto, PhotoStep } from '../types';
 import './CaptureFlow.css';
@@ -41,6 +43,14 @@ export function CaptureFlow({
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [captured, setCaptured] = useState<CapturedPhoto | null>(null);
 
+  // Analyse the live preview while it's on screen (no frozen still showing).
+  const { state: lightingState } = useLiveLighting(
+    videoRef,
+    status === 'ready' && captured === null,
+  );
+  // Block capture while the scene is too dark or overexposed (red states).
+  const lightingBlocked = lightingState === 'dark' || lightingState === 'bright';
+
   // Hold the temp object URL of an unconfirmed capture so we can revoke it.
   const pendingUrlRef = useRef<string | null>(null);
 
@@ -63,6 +73,8 @@ export function CaptureFlow({
   useEffect(() => clearPending, [clearPending]);
 
   const handleCapture = useCallback(async () => {
+    // Guard against capturing while lighting blocks it (e.g. via keyboard).
+    if (lightingBlocked) return;
     const frame = await capture();
     if (!frame) return;
 
@@ -77,7 +89,7 @@ export function CaptureFlow({
     };
     setCaptured(photo);
     await validate(frame.blob);
-  }, [capture, validate]);
+  }, [capture, validate, lightingBlocked]);
 
   const handleRetake = useCallback(() => {
     clearPending();
@@ -155,10 +167,12 @@ export function CaptureFlow({
         status={status}
         errorKind={errorKind}
         capturedUrl={captured?.url ?? null}
+        lightingState={lightingState}
         onRetry={() => void start()}
       />
 
       <div className="capture__feedback" aria-live="polite">
+        {!captured && <LightingWarning state={lightingState} />}
         <QualityFeedback analyzing={analyzing} result={captured ? result : null} />
       </div>
 
@@ -168,7 +182,7 @@ export function CaptureFlow({
             type="button"
             className="btn btn-primary"
             onClick={() => void handleCapture()}
-            disabled={status !== 'ready'}
+            disabled={status !== 'ready' || lightingBlocked}
           >
             צלמי תמונה
           </button>

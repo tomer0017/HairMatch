@@ -1,0 +1,57 @@
+/* Live lighting status pill — overlays the camera preview, top-center. */
+.lighting-badge {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(28, 24, 20, 0.62);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 0.25s ease both;
+  white-space: nowrap;
+}
+
+.lighting-badge--ok {
+  background: rgba(79, 138, 107, 0.82);
+}
+
+.lighting-badge--low {
+  background: rgba(196, 138, 60, 0.85);
+}
+
+.lighting-badge--bad {
+  background: rgba(192, 80, 70, 0.9);
+}
+
+/* Prominent blocking warning card shown below the preview. */
+.lighting-warning {
+  background: var(--color-error-soft);
+  color: var(--color-error);
+  border: 1.5px solid var(--color-error);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  animation: fadeIn 0.3s ease both;
+}
+
+.lighting-warning__title {
+  display: block;
+  font-weight: 700;
+  font-size: 1.02rem;
+  margin-bottom: 6px;
+}
+
+.lighting-warning__body {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  white-space: pre-line;
+}

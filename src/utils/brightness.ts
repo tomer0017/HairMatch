@@ -21,6 +21,7 @@ function luminance(r: number, g: number, b: number): number {
 const DARK_PIXEL_THRESHOLD = 70; // "dark" pixel
 const VERY_DARK_PIXEL_THRESHOLD = 50; // "very dark" pixel
 const SHADOW_CLIP_THRESHOLD = 16; // crushed-to-black shadow
+const OVEREXPOSED_PIXEL_THRESHOLD = 244; // blown-out / clipped-white pixel
 
 /** Fraction (0–1) of the shortest edges trimmed off to isolate the centre. */
 const CENTER_CROP = 0.6; // analyse the central 60% of the frame
@@ -132,6 +133,61 @@ export function calculateDarknessMetrics(
   );
 
   return { overall, center };
+}
+
+/** Lightweight luminance metrics for the live camera preview. */
+export interface LiveLightingMetrics {
+  /** Mean perceived luminance, 0–255. */
+  average: number;
+  /** Median perceived luminance, 0–255. */
+  median: number;
+  /** Share of pixels darker than DARK_PIXEL_THRESHOLD, 0–1. */
+  darkPixelRatio: number;
+  /** Share of pixels darker than VERY_DARK_PIXEL_THRESHOLD, 0–1. */
+  veryDarkPixelRatio: number;
+  /** Share of pixels clipped near pure white, 0–1. */
+  overExposedRatio: number;
+}
+
+/**
+ * Single-pass luminance metrics for the live preview. Kept deliberately cheap
+ * (one loop, a histogram for the median) so it can run a few times per second
+ * on a small sampled frame without janking the camera.
+ */
+export function calculateLightingMetrics(data: Uint8ClampedArray): LiveLightingMetrics {
+  const histogram = new Array<number>(256).fill(0);
+  const pixelCount = data.length / 4;
+  let total = 0;
+  let dark = 0;
+  let veryDark = 0;
+  let overExposed = 0;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const y601 = luminance(data[i], data[i + 1], data[i + 2]);
+    total += y601;
+    histogram[Math.round(y601)] += 1;
+    if (y601 < DARK_PIXEL_THRESHOLD) dark += 1;
+    if (y601 < VERY_DARK_PIXEL_THRESHOLD) veryDark += 1;
+    if (y601 >= OVEREXPOSED_PIXEL_THRESHOLD) overExposed += 1;
+  }
+
+  if (pixelCount === 0) {
+    return {
+      average: 0,
+      median: 0,
+      darkPixelRatio: 0,
+      veryDarkPixelRatio: 0,
+      overExposedRatio: 0,
+    };
+  }
+
+  return {
+    average: total / pixelCount,
+    median: medianFromHistogram(histogram, pixelCount),
+    darkPixelRatio: dark / pixelCount,
+    veryDarkPixelRatio: veryDark / pixelCount,
+    overExposedRatio: overExposed / pixelCount,
+  };
 }
 
 /**
