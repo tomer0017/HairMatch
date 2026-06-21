@@ -21,6 +21,69 @@
   visibility: hidden;
 }
 
+/* Face ID-style head guide — outline only, never blocks the live view. */
+.face-guide {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  pointer-events: none;
+}
+
+.face-guide__oval {
+  width: 62%;
+  aspect-ratio: 3 / 4;
+  border: 2.5px dashed rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.15),
+    0 6px 30px rgba(0, 0, 0, 0.25);
+  /* Lift the oval slightly so the head, not the chest, sits centre-frame. */
+  margin-bottom: 6%;
+}
+
+.face-guide__hint {
+  position: absolute;
+  bottom: 16px;
+  padding: 7px 16px;
+  border-radius: var(--radius-pill);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(28, 24, 20, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Live face presence indicator (front step only), top-start corner. */
+.face-indicator {
+  position: absolute;
+  top: 12px;
+  inset-inline-start: 12px;
+  z-index: 3;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(28, 24, 20, 0.62);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: fadeIn 0.25s ease both;
+}
+
+.face-indicator--on {
+  background: rgba(79, 138, 107, 0.85);
+}
+
+.face-indicator--off {
+  background: rgba(111, 103, 92, 0.78);
+}
+
 .camera__overlay {
   position: absolute;
   inset: 0;

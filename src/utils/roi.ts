@@ -39,6 +39,21 @@ export function faceHairRect(box: NormalizedBox, frameW: number, frameH: number)
   );
 }
 
+/**
+ * Portrait subject area for front shots: a tall, centred region biased toward
+ * the top of the frame (where the head + hair sit). Used as the lighting ROI
+ * when no face has been detected yet, so a dark background can't dominate.
+ */
+export function centerPortraitRect(frameW: number, frameH: number): Rect {
+  const width = frameW * 0.55;
+  const x0 = (frameW - width) / 2;
+  return clampRect(
+    { x0, y0: frameH * 0.08, x1: x0 + width, y1: frameH * 0.85 },
+    frameW,
+    frameH,
+  );
+}
+
 /** Central crop covering `fraction` of each edge (default 65%). */
 export function centerRect(frameW: number, frameH: number, fraction = 0.65): Rect {
   const marginX = (frameW * (1 - fraction)) / 2;

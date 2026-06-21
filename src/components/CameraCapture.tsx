@@ -12,6 +12,10 @@ interface CameraCaptureProps {
   capturedUrl: string | null;
   /** Live lighting verdict, shown as a pill over the preview. */
   lightingState?: LightingState;
+  /** Show the Face ID-style head guide overlay (front step only). */
+  showFaceGuide?: boolean;
+  /** Live face presence (front step only); null hides the indicator. */
+  faceDetected?: boolean | null;
   /** Retry starting the camera after an error. */
   onRetry: () => void;
 }
@@ -46,6 +50,8 @@ export function CameraCapture({
   errorKind,
   capturedUrl,
   lightingState,
+  showFaceGuide = false,
+  faceDetected = null,
   onRetry,
 }: CameraCaptureProps) {
   const showLivePreview = !capturedUrl && status === 'ready';
@@ -63,6 +69,22 @@ export function CameraCapture({
       />
 
       {showLivePreview && lightingState && <LightingBadge state={lightingState} />}
+
+      {showLivePreview && showFaceGuide && (
+        <div className="face-guide" aria-hidden="true">
+          <div className="face-guide__oval" />
+          <span className="face-guide__hint">מקמי את הפנים במרכז המסגרת</span>
+        </div>
+      )}
+
+      {showLivePreview && faceDetected !== null && (
+        <div
+          className={`face-indicator face-indicator--${faceDetected ? 'on' : 'off'}`}
+          role="status"
+        >
+          {faceDetected ? 'פנים זוהו' : 'לא זוהו פנים'}
+        </div>
+      )}
 
       {capturedUrl && (
         <img className="camera__still" src={capturedUrl} alt="התמונה שצולמה" />

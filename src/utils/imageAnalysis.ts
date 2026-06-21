@@ -7,7 +7,7 @@ import type {
 } from '../types';
 import { regionStats, type Rect } from './brightness';
 import { detectFace, isFaceDetectionAvailable, type FaceDetectionResult } from './faceDetection';
-import { centerRect, faceHairRect } from './roi';
+import { centerPortraitRect, centerRect, faceHairRect } from './roi';
 import { analyzeSharpness } from './sharpness';
 
 /**
@@ -154,12 +154,18 @@ export async function analyzeImageQuality(
   const faceAccepted =
     !!face && face.detected && face.confidence >= config.faceConfidenceMin && face.boundingBox.width > 0;
 
-  // Choose the ROI for lighting analysis.
+  // Choose the ROI for lighting analysis. Priority for face steps:
+  //   1) faceHairROI (face detected)
+  //   2) centerPortraitROI (face not detected / detection unavailable)
+  // so a dark background never dominates a well-lit subject.
   let lightingSource: LightingSource;
   let rect: Rect;
   if (config.lightingMode === 'face' && faceAccepted) {
     rect = faceHairRect(face!.boundingBox, small.width, small.height);
     lightingSource = 'faceROI';
+  } else if (config.lightingMode === 'face') {
+    rect = centerPortraitRect(small.width, small.height);
+    lightingSource = 'centerPortraitROI';
   } else {
     rect = centerRect(small.width, small.height, 0.65);
     lightingSource = 'centerROI';

@@ -33,7 +33,7 @@ export interface ValidationIssue {
 }
 
 /** Where the lighting metrics were measured. */
-export type LightingSource = 'faceROI' | 'centerROI' | 'wholeFrame';
+export type LightingSource = 'faceROI' | 'centerPortraitROI' | 'centerROI' | 'wholeFrame';
 
 /**
  * Per-step validation policy. Profiles use a lower face-confidence floor since

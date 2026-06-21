@@ -5,7 +5,7 @@ import {
   type LiveLightingMetrics,
 } from '../utils/brightness';
 import { detectFaceSync, ensureFaceDetector } from '../utils/faceDetection';
-import { faceHairRect } from '../utils/roi';
+import { centerPortraitRect, faceHairRect } from '../utils/roi';
 
 /**
  * Lighting verdict for the live preview.
@@ -16,6 +16,9 @@ import { faceHairRect } from '../utils/roi';
  * - 'bright'  : overexposed (🔴) — capture blocked
  */
 export type LightingState = 'pending' | 'ok' | 'low' | 'dark' | 'bright';
+
+/** Where the live lighting metrics were measured. */
+export type LiveLightingSource = 'faceROI' | 'centerPortraitROI' | 'wholeFrame';
 
 /** How often to sample the preview (ms). 300–500ms keeps it cheap & responsive. */
 const SAMPLE_INTERVAL_MS = 400;
@@ -59,9 +62,39 @@ function classify(m: LiveLightingMetrics): LightingState {
   return 'ok';
 }
 
+/** Map full region stats onto the lighter live-metrics shape. */
+function toLiveMetrics(s: {
+  average: number;
+  median: number;
+  darkPixelRatio: number;
+  veryDarkPixelRatio: number;
+  overExposedRatio: number;
+}): LiveLightingMetrics {
+  return {
+    average: s.average,
+    median: s.median,
+    darkPixelRatio: s.darkPixelRatio,
+    veryDarkPixelRatio: s.veryDarkPixelRatio,
+    overExposedRatio: s.overExposedRatio,
+  };
+}
+
+interface UseLiveLightingOptions {
+  /** Measure lighting on the subject (face → portrait centre) instead of frame. */
+  useFace?: boolean;
+  /** Current step id (debug only). */
+  stepId?: string;
+  /** Active camera facing mode (debug only). */
+  facing?: string;
+}
+
 interface UseLiveLightingResult {
   state: LightingState;
   metrics: LiveLightingMetrics | null;
+  /** Whether a face is currently detected (only meaningful when useFace). */
+  faceDetected: boolean;
+  /** Which region the latest sample was measured from. */
+  lightingSource: LiveLightingSource;
 }
 
 /**
@@ -69,23 +102,29 @@ interface UseLiveLightingResult {
  * the UI can warn about poor lighting and block capture before a bad photo is
  * ever taken. Sampling only runs while `active` is true.
  *
- * When `useFace` is set and detection is available, lighting is measured on the
- * subject (face + hair ROI) rather than the whole frame, so a dark background
- * doesn't trigger a false warning. The canvas is reused across samples.
+ * When `useFace` is set, lighting is measured on the subject — the face + hair
+ * ROI when a face is detected, otherwise a centred portrait ROI — so a dark
+ * background doesn't trigger a false warning. The canvas is reused across
+ * samples.
  */
 export function useLiveLighting(
   videoRef: React.RefObject<HTMLVideoElement>,
   active: boolean,
-  useFace = false,
+  options: UseLiveLightingOptions = {},
 ): UseLiveLightingResult {
+  const { useFace = false, stepId, facing } = options;
   const [state, setState] = useState<LightingState>('pending');
   const [metrics, setMetrics] = useState<LiveLightingMetrics | null>(null);
+  const [faceDetected, setFaceDetected] = useState(false);
+  const [lightingSource, setLightingSource] = useState<LiveLightingSource>('wholeFrame');
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lastLogRef = useRef('');
 
   useEffect(() => {
     if (!active) {
       setState('pending');
       setMetrics(null);
+      setFaceDetected(false);
       return;
     }
 
@@ -109,27 +148,48 @@ export function useLiveLighting(
       ctx.drawImage(video, 0, 0, w, h);
       const { data } = ctx.getImageData(0, 0, w, h);
 
-      // Prefer subject (face + hair) ROI; fall back to the whole frame.
-      let m: LiveLightingMetrics | null = null;
+      let m: LiveLightingMetrics;
+      let source: LiveLightingSource;
+      let detected = false;
+
       if (useFace) {
+        // Subject-aware: face ROI → portrait centre ROI (never whole frame),
+        // so the dark background can't dominate the verdict.
         const face = detectFaceSync(video, video.videoWidth, video.videoHeight);
         if (face?.detected && face.boundingBox.width > 0) {
-          const rect = faceHairRect(face.boundingBox, w, h);
-          const s = regionStats(data, w, h, rect);
-          m = {
-            average: s.average,
-            median: s.median,
-            darkPixelRatio: s.darkPixelRatio,
-            veryDarkPixelRatio: s.veryDarkPixelRatio,
-            overExposedRatio: s.overExposedRatio,
-          };
+          detected = true;
+          m = toLiveMetrics(regionStats(data, w, h, faceHairRect(face.boundingBox, w, h)));
+          source = 'faceROI';
+        } else {
+          m = toLiveMetrics(regionStats(data, w, h, centerPortraitRect(w, h)));
+          source = 'centerPortraitROI';
         }
+      } else {
+        m = calculateLightingMetrics(data);
+        source = 'wholeFrame';
       }
-      if (!m) m = calculateLightingMetrics(data);
 
+      const nextState = classify(m);
       if (cancelled) return;
       setMetrics(m);
-      setState(classify(m));
+      setState(nextState);
+      setFaceDetected(detected);
+      setLightingSource(source);
+
+      if (import.meta.env.DEV) {
+        const key = `${facing}|${stepId}|${detected}|${source}|${nextState}`;
+        if (key !== lastLogRef.current) {
+          lastLogRef.current = key;
+          // eslint-disable-next-line no-console
+          console.debug('[liveLighting]', {
+            activeFacingMode: facing,
+            stepId,
+            faceLiveDetected: detected,
+            lightingSource: source,
+            finalLiveLightingStatus: nextState,
+          });
+        }
+      }
     };
 
     sample();
@@ -138,7 +198,7 @@ export function useLiveLighting(
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [active, useFace, videoRef]);
+  }, [active, useFace, stepId, facing, videoRef]);
 
-  return { state, metrics };
+  return { state, metrics, faceDetected, lightingSource };
 }

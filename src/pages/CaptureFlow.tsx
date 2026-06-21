@@ -38,7 +38,7 @@ export function CaptureFlow({
   onExit,
   onBackToLanding,
 }: CaptureFlowProps) {
-  const { videoRef, status, errorKind, start, capture } = useCamera();
+  const { videoRef, status, errorKind, facing, start, switchCamera, capture } = useCamera();
   const { analyzing, result, validate, reset } = usePhotoValidation();
 
   const [currentIndex, setCurrentIndex] = useState(startIndex);
@@ -46,13 +46,15 @@ export function CaptureFlow({
 
   const step = steps[currentIndex];
   const stepValidation = getStepValidation(step.id);
+  // The front portrait step gets the Face ID-style guide + live face indicator.
+  const isFrontStep = step.id === 'front';
 
   // Analyse the live preview while it's on screen (no frozen still showing).
   // Face-required steps measure lighting on the subject (face + hair ROI).
-  const { state: lightingState } = useLiveLighting(
+  const { state: lightingState, faceDetected } = useLiveLighting(
     videoRef,
     status === 'ready' && captured === null,
-    stepValidation.requireFace,
+    { useFace: stepValidation.requireFace, stepId: step.id, facing },
   );
   // Block capture while the scene is too dark or overexposed (red states).
   const lightingBlocked = lightingState === 'dark' || lightingState === 'bright';
@@ -172,6 +174,8 @@ export function CaptureFlow({
         errorKind={errorKind}
         capturedUrl={captured?.url ?? null}
         lightingState={lightingState}
+        showFaceGuide={isFrontStep}
+        faceDetected={isFrontStep ? faceDetected : null}
         onRetry={() => void start()}
       />
 
@@ -182,14 +186,24 @@ export function CaptureFlow({
 
       <div className="capture__actions">
         {!captured ? (
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => void handleCapture()}
-            disabled={status !== 'ready' || lightingBlocked}
-          >
-            צלמי תמונה
-          </button>
+          <>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => void handleCapture()}
+              disabled={status !== 'ready' || lightingBlocked}
+            >
+              צלמי תמונה
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => void switchCamera()}
+              disabled={status === 'requesting'}
+            >
+              החלפת מצלמה
+            </button>
+          </>
         ) : (
           <div className="btn-row">
             <button type="button" className="btn btn-secondary" onClick={handleRetake}>

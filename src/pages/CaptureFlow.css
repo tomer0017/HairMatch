@@ -40,4 +40,7 @@
 .capture__actions {
   margin-top: auto;
   padding-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
