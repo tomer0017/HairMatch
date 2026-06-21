@@ -1,5 +1,5 @@
 import type { QualityResult, ValidationIssue } from '../types';
-import { calculateBrightness, calculateOverExposure } from './brightness';
+import { calculateDarknessMetrics, calculateOverExposure } from './brightness';
 import { calculateSharpness } from './sharpness';
 
 /**
@@ -14,10 +14,28 @@ import { calculateSharpness } from './sharpness';
 /** Longest edge (px) used for the analysis canvas. */
 const ANALYSIS_SIZE = 480;
 
-/** Tuning thresholds. Deliberately forgiving to avoid false rejections. */
+/**
+ * Tuning thresholds.
+ *
+ * Darkness is judged by several luminance metrics (0–255) rather than the
+ * average alone, so a stray light source can't lift a shadowed subject past
+ * validation. The image fails if ANY of these conditions hold.
+ */
 const THRESHOLDS = {
-  /** Below this average brightness (0–1) the image is too dark. */
-  darkBelow: 0.22,
+  darkness: {
+    /** Fail if whole-frame mean luminance is below this. */
+    averageBelow: 95,
+    /** Fail if whole-frame median luminance is below this. */
+    medianBelow: 85,
+    /** Fail if more than this share of pixels are below luminance 70. */
+    darkPixelRatioAbove: 0.45,
+    /** Fail if more than this share of pixels are below luminance 50. */
+    veryDarkPixelRatioAbove: 0.25,
+    /** Fail if the central crop mean luminance is below this. */
+    centerAverageBelow: 100,
+    /** Fail if the central crop median luminance is below this. */
+    centerMedianBelow: 90,
+  },
   /** Above this share of blown-out pixels (0–1) the image is overexposed. */
   overExposureAbove: 0.35,
   /** Below this Laplacian variance the image is considered blurry. */
@@ -27,7 +45,7 @@ const THRESHOLDS = {
 };
 
 const MESSAGES: Record<ValidationIssue['code'], string> = {
-  dark: 'תמונה חשוכה מדי. אנא עברי למקום מואר יותר וצלמי שוב.',
+  dark: 'התמונה חשוכה מדי. עברי למקום מואר יותר וצלמי שוב.',
   bright: 'התמונה בהירה מדי. נסי להימנע משמש ישירה או תאורה חזקה.',
   blurry: 'התמונה מטושטשת. נקי את העדשה וצלמי שוב.',
   resolution: 'איכות התמונה נמוכה מדי. אנא צלמי שוב.',
@@ -97,14 +115,23 @@ export async function analyzeImageQuality(blob: Blob): Promise<QualityResult> {
 
   const { data } = ctx.getImageData(0, 0, width, height);
 
-  const brightness = calculateBrightness(data);
+  const { overall, center } = calculateDarknessMetrics(data, width, height);
   const overExposure = calculateOverExposure(data);
   const sharpness = calculateSharpness(data, width, height);
   const shortEdge = Math.min(srcW, srcH);
 
+  const d = THRESHOLDS.darkness;
+  const tooDark =
+    overall.average < d.averageBelow ||
+    overall.median < d.medianBelow ||
+    overall.darkPixelRatio > d.darkPixelRatioAbove ||
+    overall.veryDarkPixelRatio > d.veryDarkPixelRatioAbove ||
+    center.average < d.centerAverageBelow ||
+    center.median < d.centerMedianBelow;
+
   const issues: ValidationIssue[] = [];
 
-  if (brightness < THRESHOLDS.darkBelow) {
+  if (tooDark) {
     issues.push({ code: 'dark', message: MESSAGES.dark });
   }
   if (overExposure > THRESHOLDS.overExposureAbove) {
@@ -117,9 +144,36 @@ export async function analyzeImageQuality(blob: Blob): Promise<QualityResult> {
     issues.push({ code: 'resolution', message: MESSAGES.resolution });
   }
 
+  const metrics = {
+    averageLuminance: overall.average,
+    medianLuminance: overall.median,
+    darkPixelRatio: overall.darkPixelRatio,
+    veryDarkPixelRatio: overall.veryDarkPixelRatio,
+    centerAverageLuminance: center.average,
+    centerMedianLuminance: center.median,
+    overExposure,
+    sharpness,
+    width: srcW,
+    height: srcH,
+  };
+
+  // Dev-only: surface the darkness metrics that drove the decision.
+  if (import.meta.env.DEV) {
+    // eslint-disable-next-line no-console
+    console.debug('[imageAnalysis] darkness metrics', {
+      averageLuminance: metrics.averageLuminance,
+      medianLuminance: metrics.medianLuminance,
+      darkPixelRatio: metrics.darkPixelRatio,
+      veryDarkPixelRatio: metrics.veryDarkPixelRatio,
+      centerAverageLuminance: metrics.centerAverageLuminance,
+      centerMedianLuminance: metrics.centerMedianLuminance,
+      tooDark,
+    });
+  }
+
   return {
     passed: issues.length === 0,
     issues,
-    metrics: { brightness, overExposure, sharpness, width: srcW, height: srcH },
+    metrics,
   };
 }

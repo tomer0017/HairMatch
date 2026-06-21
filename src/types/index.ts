@@ -34,7 +34,18 @@ export interface ValidationIssue {
 
 /** Raw numeric metrics produced by the analysis pass (useful for debugging). */
 export interface QualityMetrics {
-  brightness: number;
+  /** Mean perceived luminance of the whole frame, 0–255 (Rec. 601). */
+  averageLuminance: number;
+  /** Median perceived luminance of the whole frame, 0–255. */
+  medianLuminance: number;
+  /** Share of frame pixels darker than the "dark" threshold, 0–1. */
+  darkPixelRatio: number;
+  /** Share of frame pixels darker than the "very dark" threshold, 0–1. */
+  veryDarkPixelRatio: number;
+  /** Mean perceived luminance of the central crop, 0–255. */
+  centerAverageLuminance: number;
+  /** Median perceived luminance of the central crop, 0–255. */
+  centerMedianLuminance: number;
   overExposure: number;
   sharpness: number;
   width: number;
