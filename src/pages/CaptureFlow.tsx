@@ -7,6 +7,7 @@ import { QualityFeedback } from '../components/QualityFeedback';
 import { useCamera } from '../hooks/useCamera';
 import { useLiveLighting } from '../hooks/useLiveLighting';
 import { usePhotoValidation } from '../hooks/usePhotoValidation';
+import { getStepValidation } from '../config/validation';
 import type { CapturedPhoto, PhotoStep } from '../types';
 import './CaptureFlow.css';
 
@@ -43,18 +44,21 @@ export function CaptureFlow({
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [captured, setCaptured] = useState<CapturedPhoto | null>(null);
 
+  const step = steps[currentIndex];
+  const stepValidation = getStepValidation(step.id);
+
   // Analyse the live preview while it's on screen (no frozen still showing).
+  // Face-required steps measure lighting on the subject (face + hair ROI).
   const { state: lightingState } = useLiveLighting(
     videoRef,
     status === 'ready' && captured === null,
+    stepValidation.requireFace,
   );
   // Block capture while the scene is too dark or overexposed (red states).
   const lightingBlocked = lightingState === 'dark' || lightingState === 'bright';
 
   // Hold the temp object URL of an unconfirmed capture so we can revoke it.
   const pendingUrlRef = useRef<string | null>(null);
-
-  const step = steps[currentIndex];
 
   // Start the camera once on mount — we arrive here from a user gesture
   // (the "התחילי" or "צלמי מחדש" tap), so permission can be requested now.
@@ -88,8 +92,8 @@ export function CaptureFlow({
       height: frame.height,
     };
     setCaptured(photo);
-    await validate(frame.blob);
-  }, [capture, validate, lightingBlocked]);
+    await validate(frame.blob, stepValidation);
+  }, [capture, validate, lightingBlocked, stepValidation]);
 
   const handleRetake = useCallback(() => {
     clearPending();

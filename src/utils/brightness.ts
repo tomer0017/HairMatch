@@ -23,9 +23,6 @@ const VERY_DARK_PIXEL_THRESHOLD = 50; // "very dark" pixel
 const SHADOW_CLIP_THRESHOLD = 16; // crushed-to-black shadow
 const OVEREXPOSED_PIXEL_THRESHOLD = 244; // blown-out / clipped-white pixel
 
-/** Fraction (0–1) of the shortest edges trimmed off to isolate the centre. */
-const CENTER_CROP = 0.6; // analyse the central 60% of the frame
-
 /** Aggregate luminance statistics for a region of pixels. */
 export interface LuminanceStats {
   /** Mean perceived luminance, 0–255. */
@@ -38,12 +35,16 @@ export interface LuminanceStats {
   veryDarkPixelRatio: number;
   /** Share of pixels crushed into near-black shadow, 0–1. */
   shadowClipRatio: number;
+  /** Share of pixels clipped near pure white, 0–1. */
+  overExposedRatio: number;
 }
 
-/** Full set of brightness metrics for the whole frame and its centre. */
-export interface DarknessMetrics {
-  overall: LuminanceStats;
-  center: LuminanceStats;
+/** A pixel-space rectangle, half-open: [x0, x1) × [y0, y1). */
+export interface Rect {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
 }
 
 /** Find the median from a 256-bin luminance histogram. */
@@ -75,6 +76,7 @@ function statsForRegion(
   let dark = 0;
   let veryDark = 0;
   let shadowClipped = 0;
+  let overExposed = 0;
   let pixelCount = 0;
 
   for (let y = y0; y < y1; y += 1) {
@@ -86,6 +88,7 @@ function statsForRegion(
       if (y601 < DARK_PIXEL_THRESHOLD) dark += 1;
       if (y601 < VERY_DARK_PIXEL_THRESHOLD) veryDark += 1;
       if (y601 < SHADOW_CLIP_THRESHOLD) shadowClipped += 1;
+      if (y601 >= OVEREXPOSED_PIXEL_THRESHOLD) overExposed += 1;
       pixelCount += 1;
     }
   }
@@ -97,6 +100,7 @@ function statsForRegion(
       darkPixelRatio: 0,
       veryDarkPixelRatio: 0,
       shadowClipRatio: 0,
+      overExposedRatio: 0,
     };
   }
 
@@ -106,33 +110,25 @@ function statsForRegion(
     darkPixelRatio: dark / pixelCount,
     veryDarkPixelRatio: veryDark / pixelCount,
     shadowClipRatio: shadowClipped / pixelCount,
+    overExposedRatio: overExposed / pixelCount,
   };
 }
 
 /**
- * Compute darkness metrics for the whole frame and its central crop.
- * All luminance values are on a 0–255 scale.
+ * Luminance stats for an arbitrary ROI (clamped to the buffer bounds), on a
+ * 0–255 scale. Used for subject-focused (faceROI / centerROI) analysis.
  */
-export function calculateDarknessMetrics(
+export function regionStats(
   data: Uint8ClampedArray,
   width: number,
   height: number,
-): DarknessMetrics {
-  const overall = statsForRegion(data, width, 0, 0, width, height);
-
-  // Central crop: keep CENTER_CROP of each edge, trimming equal margins.
-  const marginX = Math.floor((width * (1 - CENTER_CROP)) / 2);
-  const marginY = Math.floor((height * (1 - CENTER_CROP)) / 2);
-  const center = statsForRegion(
-    data,
-    width,
-    marginX,
-    marginY,
-    width - marginX,
-    height - marginY,
-  );
-
-  return { overall, center };
+  rect: Rect,
+): LuminanceStats {
+  const x0 = Math.max(0, Math.min(width, Math.floor(rect.x0)));
+  const y0 = Math.max(0, Math.min(height, Math.floor(rect.y0)));
+  const x1 = Math.max(x0, Math.min(width, Math.ceil(rect.x1)));
+  const y1 = Math.max(y0, Math.min(height, Math.ceil(rect.y1)));
+  return statsForRegion(data, width, x0, y0, x1, y1);
 }
 
 /** Lightweight luminance metrics for the live camera preview. */
@@ -188,22 +184,4 @@ export function calculateLightingMetrics(data: Uint8ClampedArray): LiveLightingM
     veryDarkPixelRatio: veryDark / pixelCount,
     overExposedRatio: overExposed / pixelCount,
   };
-}
-
-/**
- * Share of pixels that are "blown out" (clipped near pure white), 0–1.
- * A high value indicates overexposure / direct sunlight washing out detail.
- */
-export function calculateOverExposure(data: Uint8ClampedArray): number {
-  let clipped = 0;
-  const pixelCount = data.length / 4;
-  const CLIP_THRESHOLD = 244; // near-white
-
-  for (let i = 0; i < data.length; i += 4) {
-    if (luminance(data[i], data[i + 1], data[i + 2]) >= CLIP_THRESHOLD) {
-      clipped += 1;
-    }
-  }
-
-  return clipped / pixelCount;
 }

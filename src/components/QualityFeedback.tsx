@@ -15,7 +15,7 @@ export function QualityFeedback({ analyzing, result }: QualityFeedbackProps) {
     return (
       <div className="feedback feedback--analyzing" role="status">
         <span className="feedback__spinner" aria-hidden="true" />
-        <span>בודקת את איכות התמונה…</span>
+        <span>בודקים את התמונה…</span>
       </div>
     );
   }

@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { calculateLightingMetrics, type LiveLightingMetrics } from '../utils/brightness';
+import {
+  calculateLightingMetrics,
+  regionStats,
+  type LiveLightingMetrics,
+} from '../utils/brightness';
+import { detectFaceSync, ensureFaceDetector } from '../utils/faceDetection';
+import { faceHairRect } from '../utils/roi';
 
 /**
  * Lighting verdict for the live preview.
@@ -30,9 +36,9 @@ const LIVE = {
   /** Orange — dim but acceptable. */
   lowAverage: 125,
   lowDarkPixelRatio: 0.3,
-  /** Red — overexposed. */
-  brightOverExposedRatio: 0.35,
-  brightAverage: 225,
+  /** Red — overexposed (clipping). */
+  brightOverExposedRatio: 0.4,
+  brightAverage: 230,
 };
 
 function classify(m: LiveLightingMetrics): LightingState {
@@ -62,10 +68,15 @@ interface UseLiveLightingResult {
  * Continuously analyses the live camera preview (locally, on a tiny canvas) so
  * the UI can warn about poor lighting and block capture before a bad photo is
  * ever taken. Sampling only runs while `active` is true.
+ *
+ * When `useFace` is set and detection is available, lighting is measured on the
+ * subject (face + hair ROI) rather than the whole frame, so a dark background
+ * doesn't trigger a false warning. The canvas is reused across samples.
  */
 export function useLiveLighting(
   videoRef: React.RefObject<HTMLVideoElement>,
   active: boolean,
+  useFace = false,
 ): UseLiveLightingResult {
   const [state, setState] = useState<LightingState>('pending');
   const [metrics, setMetrics] = useState<LiveLightingMetrics | null>(null);
@@ -77,6 +88,9 @@ export function useLiveLighting(
       setMetrics(null);
       return;
     }
+
+    // Kick off detector loading once; samples use it as soon as it's ready.
+    if (useFace) void ensureFaceDetector();
 
     const canvas = canvasRef.current ?? document.createElement('canvas');
     canvasRef.current = canvas;
@@ -93,8 +107,26 @@ export function useLiveLighting(
       canvas.width = w;
       canvas.height = h;
       ctx.drawImage(video, 0, 0, w, h);
+      const { data } = ctx.getImageData(0, 0, w, h);
 
-      const m = calculateLightingMetrics(ctx.getImageData(0, 0, w, h).data);
+      // Prefer subject (face + hair) ROI; fall back to the whole frame.
+      let m: LiveLightingMetrics | null = null;
+      if (useFace) {
+        const face = detectFaceSync(video, video.videoWidth, video.videoHeight);
+        if (face?.detected && face.boundingBox.width > 0) {
+          const rect = faceHairRect(face.boundingBox, w, h);
+          const s = regionStats(data, w, h, rect);
+          m = {
+            average: s.average,
+            median: s.median,
+            darkPixelRatio: s.darkPixelRatio,
+            veryDarkPixelRatio: s.veryDarkPixelRatio,
+            overExposedRatio: s.overExposedRatio,
+          };
+        }
+      }
+      if (!m) m = calculateLightingMetrics(data);
+
       if (cancelled) return;
       setMetrics(m);
       setState(classify(m));
@@ -106,7 +138,7 @@ export function useLiveLighting(
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [active, videoRef]);
+  }, [active, useFace, videoRef]);
 
   return { state, metrics };
 }
