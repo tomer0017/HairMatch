@@ -12,8 +12,8 @@ const STATUS: Record<Exclude<LightingState, 'pending'>, { dot: string; label: st
 /** Prominent blocking-warning copy, shown only for the red states. */
 const WARNING: Record<'dark' | 'bright', { title: string; body: string }> = {
   dark: {
-    title: 'אין מספיק תאורה לצילום',
-    body: 'תאורת הסביבה חשוכה מדי.\nאנא עברי למקום מואר יותר לפני הצילום.',
+    title: 'תאורה חלשה או רקע כהה מדי',
+    body: 'אנא עברי למקום מואר יותר או הצטלמי מול רקע בהיר.',
   },
   bright: {
     title: 'התמונה צפויה להיות שרופה',

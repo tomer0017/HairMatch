@@ -43,11 +43,38 @@ export function CaptureFlow({
 
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [captured, setCaptured] = useState<CapturedPhoto | null>(null);
+  // Whether the brief front-step intro guide is currently animating on screen.
+  const [faceGuideVisible, setFaceGuideVisible] = useState(false);
 
   const step = steps[currentIndex];
   const stepValidation = getStepValidation(step.id);
-  // The front portrait step gets the Face ID-style guide + live face indicator.
+  // The front portrait step gets the brief Face ID-style intro guide + live
+  // face indicator. The guide only plays momentarily, then frees up the frame.
   const isFrontStep = step.id === 'front';
+
+  /** Total on-screen lifetime of the intro guide (matches the CSS animation). */
+  const FACE_GUIDE_MS = 1800;
+
+  // Play the intro guide once each time the live preview opens on the front
+  // step. It fades in, pulses, then unmounts — leaving the user free to frame
+  // the full hair. Face detection + lighting validation keep running after.
+  useEffect(() => {
+    if (!isFrontStep || status !== 'ready' || captured !== null) {
+      setFaceGuideVisible(false);
+      return;
+    }
+    setFaceGuideVisible(true);
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.debug('[captureFlow]', {
+        stepId: step.id,
+        activeFacingMode: facing,
+        overlayAnimationShown: true,
+      });
+    }
+    const id = window.setTimeout(() => setFaceGuideVisible(false), FACE_GUIDE_MS);
+    return () => window.clearTimeout(id);
+  }, [isFrontStep, status, captured, step.id, facing]);
 
   // Analyse the live preview while it's on screen (no frozen still showing).
   // Face-required steps measure lighting on the subject (face + hair ROI).
@@ -168,14 +195,25 @@ export function CaptureFlow({
         <PhotoInstructions step={step} />
       </div>
 
+      {/* Gentle professional tip: a bright background improves how clearly the
+          hair's shape, length, colour and texture come through. */}
+      <p className="capture__tip">
+        <span className="capture__tip-icon" aria-hidden="true">
+          💡
+        </span>
+        לתוצאה מדויקת, הצטלמי בתאורה ברורה ועם רקע בהיר מאחור
+      </p>
+
       <CameraCapture
         videoRef={videoRef}
         status={status}
         errorKind={errorKind}
         capturedUrl={captured?.url ?? null}
         lightingState={lightingState}
-        showFaceGuide={isFrontStep}
+        showFaceGuide={isFrontStep && faceGuideVisible}
         faceDetected={isFrontStep ? faceDetected : null}
+        onSwitchCamera={() => void switchCamera()}
+        switchDisabled={status === 'requesting'}
         onRetry={() => void start()}
       />
 
@@ -186,24 +224,14 @@ export function CaptureFlow({
 
       <div className="capture__actions">
         {!captured ? (
-          <>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => void handleCapture()}
-              disabled={status !== 'ready' || lightingBlocked}
-            >
-              צלמי תמונה
-            </button>
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => void switchCamera()}
-              disabled={status === 'requesting'}
-            >
-              החלפת מצלמה
-            </button>
-          </>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => void handleCapture()}
+            disabled={status !== 'ready' || lightingBlocked}
+          >
+            צלמי תמונה
+          </button>
         ) : (
           <div className="btn-row">
             <button type="button" className="btn btn-secondary" onClick={handleRetake}>

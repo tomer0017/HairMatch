@@ -12,10 +12,14 @@ interface CameraCaptureProps {
   capturedUrl: string | null;
   /** Live lighting verdict, shown as a pill over the preview. */
   lightingState?: LightingState;
-  /** Show the Face ID-style head guide overlay (front step only). */
+  /** Play the brief Face ID-style intro guide overlay (front step only). */
   showFaceGuide?: boolean;
   /** Live face presence (front step only); null hides the indicator. */
   faceDetected?: boolean | null;
+  /** Flip the camera; when set, a floating switch button overlays the preview. */
+  onSwitchCamera?: () => void;
+  /** Disable the floating switch button (e.g. while the camera is restarting). */
+  switchDisabled?: boolean;
   /** Retry starting the camera after an error. */
   onRetry: () => void;
 }
@@ -52,6 +56,8 @@ export function CameraCapture({
   lightingState,
   showFaceGuide = false,
   faceDetected = null,
+  onSwitchCamera,
+  switchDisabled = false,
   onRetry,
 }: CameraCaptureProps) {
   const showLivePreview = !capturedUrl && status === 'ready';
@@ -70,10 +76,13 @@ export function CameraCapture({
 
       {showLivePreview && lightingState && <LightingBadge state={lightingState} />}
 
+      {/* Brief intro guide: a smaller dashed oval that fades in, pulses and
+          fades out after ~1s, then unmounts — leaving the user free to frame
+          the full hair. CaptureFlow controls when it mounts. */}
       {showLivePreview && showFaceGuide && (
-        <div className="face-guide" aria-hidden="true">
+        <div className="face-guide face-guide--intro" aria-hidden="true">
           <div className="face-guide__oval" />
-          <span className="face-guide__hint">מקמי את הפנים במרכז המסגרת</span>
+          <span className="face-guide__hint">מקמי את הפנים במרכז</span>
         </div>
       )}
 
@@ -84,6 +93,39 @@ export function CameraCapture({
         >
           {faceDetected ? 'פנים זוהו' : 'לא זוהו פנים'}
         </div>
+      )}
+
+      {showLivePreview && onSwitchCamera && (
+        <button
+          type="button"
+          className="camera__switch"
+          onClick={onSwitchCamera}
+          disabled={switchDisabled}
+          aria-label="החלפת מצלמה"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              d="M12 9.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"
+              fill="currentColor"
+            />
+            <path
+              d="M9 3.8 8 5.5H5.5A2.5 2.5 0 0 0 3 8v3.2M3 11.2 1.4 9.6M3 11.2l1.6-1.6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M15 20.2l1-1.7h2.5A2.5 2.5 0 0 0 21 16v-3.2M21 12.8l1.6 1.6M21 12.8l-1.6 1.6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
       )}
 
       {capturedUrl && (

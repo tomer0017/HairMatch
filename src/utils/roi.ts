@@ -40,6 +40,32 @@ export function faceHairRect(box: NormalizedBox, frameW: number, frameH: number)
 }
 
 /**
+ * The "core face" ROI: the detected face box itself, inset slightly so it stays
+ * on skin rather than the hairline / jaw edges. This is the most reliable "is
+ * the subject lit?" signal — it's dominated by face skin and is unaffected by a
+ * dark background or dark hair around the head, so we use it to decide whether a
+ * well-lit person should pass even when the surroundings are dark.
+ */
+export function faceCoreRect(box: NormalizedBox, frameW: number, frameH: number): Rect {
+  const bx = box.x * frameW;
+  const by = box.y * frameH;
+  const bw = box.width * frameW;
+  const bh = box.height * frameH;
+
+  // Inset 10% on each edge to bias the sample toward central face skin.
+  return clampRect(
+    {
+      x0: bx + 0.1 * bw,
+      y0: by + 0.1 * bh,
+      x1: bx + bw - 0.1 * bw,
+      y1: by + bh - 0.1 * bh,
+    },
+    frameW,
+    frameH,
+  );
+}
+
+/**
  * Portrait subject area for front shots: a tall, centred region biased toward
  * the top of the frame (where the head + hair sit). Used as the lighting ROI
  * when no face has been detected yet, so a dark background can't dominate.

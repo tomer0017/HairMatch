@@ -5,7 +5,7 @@ import {
   type LiveLightingMetrics,
 } from '../utils/brightness';
 import { detectFaceSync, ensureFaceDetector } from '../utils/faceDetection';
-import { centerPortraitRect, faceHairRect } from '../utils/roi';
+import { centerPortraitRect, faceCoreRect, faceHairRect } from '../utils/roi';
 
 /**
  * Lighting verdict for the live preview.
@@ -60,6 +60,25 @@ function classify(m: LiveLightingMetrics): LightingState {
     return 'low';
   }
   return 'ok';
+}
+
+/**
+ * Subject-aware classification for face steps. Overexposure is still judged on
+ * the full face+hair ROI, but darkness is judged primarily on the CORE face ROI
+ * (skin) — so a dark background or dark hair around a well-lit face never trips
+ * a false "too dark" warning. Only when the subject itself is dim do we fall
+ * back to the full-ROI verdict.
+ */
+function classifySubject(roiM: LiveLightingMetrics, coreM: LiveLightingMetrics): LightingState {
+  if (roiM.overExposedRatio > LIVE.brightOverExposedRatio || roiM.average > LIVE.brightAverage) {
+    return 'bright';
+  }
+  const subjectWellLit =
+    coreM.average >= LIVE.lowAverage &&
+    coreM.median >= LIVE.darkMedian &&
+    coreM.veryDarkPixelRatio <= LIVE.veryDarkPixelRatio;
+  if (subjectWellLit) return 'ok';
+  return classify(roiM);
 }
 
 /** Map full region stats onto the lighter live-metrics shape. */
@@ -151,6 +170,7 @@ export function useLiveLighting(
       let m: LiveLightingMetrics;
       let source: LiveLightingSource;
       let detected = false;
+      let nextState: LightingState;
 
       if (useFace) {
         // Subject-aware: face ROI → portrait centre ROI (never whole frame),
@@ -159,17 +179,21 @@ export function useLiveLighting(
         if (face?.detected && face.boundingBox.width > 0) {
           detected = true;
           m = toLiveMetrics(regionStats(data, w, h, faceHairRect(face.boundingBox, w, h)));
+          // Core face skin drives the darkness decision (dark bg/hair ignored).
+          const core = toLiveMetrics(regionStats(data, w, h, faceCoreRect(face.boundingBox, w, h)));
           source = 'faceROI';
+          nextState = classifySubject(m, core);
         } else {
           m = toLiveMetrics(regionStats(data, w, h, centerPortraitRect(w, h)));
           source = 'centerPortraitROI';
+          nextState = classify(m);
         }
       } else {
         m = calculateLightingMetrics(data);
         source = 'wholeFrame';
+        nextState = classify(m);
       }
 
-      const nextState = classify(m);
       if (cancelled) return;
       setMetrics(m);
       setState(nextState);
@@ -180,12 +204,20 @@ export function useLiveLighting(
         const key = `${facing}|${stepId}|${detected}|${source}|${nextState}`;
         if (key !== lastLogRef.current) {
           lastLogRef.current = key;
+          // Whole-frame stats are a warning/debug signal only — they never block
+          // capture when the subject ROI is well lit.
+          const whole = calculateLightingMetrics(data);
           // eslint-disable-next-line no-console
           console.debug('[liveLighting]', {
-            activeFacingMode: facing,
             stepId,
-            faceLiveDetected: detected,
+            activeFacingMode: facing,
+            faceDetected: detected,
             lightingSource: source,
+            subjectRoiAverage: m.average,
+            subjectRoiMedian: m.median,
+            subjectRoiDarkPixelRatio: m.darkPixelRatio,
+            wholeFrameAverage: whole.average,
+            wholeFrameDarkPixelRatio: whole.darkPixelRatio,
             finalLiveLightingStatus: nextState,
           });
         }

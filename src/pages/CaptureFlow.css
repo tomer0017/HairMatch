@@ -33,6 +33,26 @@
   flex: 1;
 }
 
+/* Subtle professional tip pill — sits above the camera preview. */
+.capture__tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: -6px;
+  padding: 10px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 0.86rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--color-accent-deep);
+  background: var(--color-accent-soft);
+}
+
+.capture__tip-icon {
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
 .capture__feedback {
   min-height: 8px;
 }

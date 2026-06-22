@@ -34,8 +34,55 @@
   pointer-events: none;
 }
 
+/* Brief intro animation: fade in, gentle pulse, hold ~1s, fade out. The
+   element is unmounted by CaptureFlow after this plays, so nothing lingers. */
+.face-guide--intro {
+  animation: faceGuideIntro 1.8s ease both;
+}
+
+@keyframes faceGuideIntro {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  16% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  32% {
+    transform: scale(1.04);
+  }
+  48% {
+    transform: scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .face-guide--intro {
+    animation: faceGuideFade 1.8s ease both;
+  }
+  @keyframes faceGuideFade {
+    0%,
+    80% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+}
+
 .face-guide__oval {
-  width: 62%;
+  /* Sized for the face only — smaller than a full-head/hair frame so users
+     aren't tempted to crop out hair volume once the guide disappears. */
+  width: 44%;
   aspect-ratio: 3 / 4;
   border: 2.5px dashed rgba(255, 255, 255, 0.9);
   border-radius: 50%;
@@ -82,6 +129,50 @@
 
 .face-indicator--off {
   background: rgba(111, 103, 92, 0.78);
+}
+
+/* Floating camera-switch button — overlays the live preview, bottom-right,
+   like iOS / WhatsApp / Instagram. Icon only; physical right so it stays in
+   the bottom-right corner regardless of RTL. */
+.camera__switch {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(20, 17, 13, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
+}
+
+.camera__switch:hover {
+  background: rgba(20, 17, 13, 0.72);
+}
+
+.camera__switch:active {
+  transform: scale(0.92);
+}
+
+.camera__switch:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.camera__switch svg {
+  width: 26px;
+  height: 26px;
 }
 
 .camera__overlay {

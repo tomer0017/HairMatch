@@ -7,7 +7,7 @@ import type {
 } from '../types';
 import { regionStats, type Rect } from './brightness';
 import { detectFace, isFaceDetectionAvailable, type FaceDetectionResult } from './faceDetection';
-import { centerPortraitRect, centerRect, faceHairRect } from './roi';
+import { centerPortraitRect, centerRect, faceCoreRect, faceHairRect } from './roi';
 import { analyzeSharpness } from './sharpness';
 
 /**
@@ -66,7 +66,7 @@ const THRESHOLDS = {
 };
 
 const MESSAGES: Record<ValidationIssue['code'], string> = {
-  dark: 'התמונה חשוכה מדי. עברי למקום מואר יותר וצלמי שוב.',
+  dark: 'תאורה חלשה או רקע כהה מדי. אנא עברי למקום מואר יותר או הצטלמי מול רקע בהיר.',
   bright: 'התמונה בהירה מדי. נסי להימנע משמש ישירה או תאורה חזקה.',
   blurry: 'התמונה מטושטשת מדי. אנא החזיקי את המצלמה יציבה וצלמי שוב.',
   resolution: 'איכות התמונה נמוכה מדי. אנא צלמי שוב.',
@@ -172,6 +172,16 @@ export async function analyzeImageQuality(
   }
 
   const roi = regionStats(small.data, small.width, small.height, rect);
+
+  // Whole-frame luminance — used only as a warning/debug signal, never as a hard
+  // failure on its own, so a dark background can't reject a well-lit subject.
+  const wholeFrame = regionStats(small.data, small.width, small.height, {
+    x0: 0,
+    y0: 0,
+    x1: small.width,
+    y1: small.height,
+  });
+
   const { laplacianVariance, edgeDensity } = analyzeSharpness(
     large.data,
     large.width,
@@ -180,11 +190,34 @@ export async function analyzeImageQuality(
   const shortEdge = Math.min(srcW, srcH);
 
   const d = THRESHOLDS.darkness;
-  const tooDark =
-    roi.average < d.averageBelow ||
-    roi.median < d.medianBelow ||
-    roi.darkPixelRatio > d.darkPixelRatioAbove ||
-    roi.veryDarkPixelRatio > d.veryDarkPixelRatioAbove;
+
+  // Combined darkness test on a region (central tendency + dark-pixel share).
+  const combinedDark = (r: typeof roi) =>
+    r.average < d.averageBelow ||
+    r.median < d.medianBelow ||
+    r.darkPixelRatio > d.darkPixelRatioAbove ||
+    r.veryDarkPixelRatio > d.veryDarkPixelRatioAbove;
+
+  // Subject-aware darkness decision:
+  // - When a face is detected we judge primarily on the CORE face ROI (skin),
+  //   which is immune to dark hair / dark background. If that subject is well
+  //   lit, the photo passes even with a dark backdrop. Only when the subject
+  //   itself is dim do we fall back to the full face+hair ROI verdict.
+  // - Otherwise (no face, or back views) we keep the stricter combined test on
+  //   the centre/portrait ROI.
+  let tooDark: boolean;
+  if (config.lightingMode === 'face' && faceAccepted) {
+    const core = regionStats(
+      small.data,
+      small.width,
+      small.height,
+      faceCoreRect(face!.boundingBox, small.width, small.height),
+    );
+    const subjectWellLit = core.average >= d.averageBelow && core.median >= d.medianBelow;
+    tooDark = !subjectWellLit && combinedDark(roi);
+  } else {
+    tooDark = combinedDark(roi);
+  }
 
   // Overexposed only when a lot of the ROI is clipped white AND detail is lost.
   const overexposed =
@@ -234,13 +267,16 @@ export async function analyzeImageQuality(
       faceDetected: faceAccepted,
       confidenceScore: metrics.faceConfidence,
       lightingSource,
-      roiAverageLuminance: roi.average,
-      roiMedianLuminance: roi.median,
-      roiDarkPixelRatio: roi.darkPixelRatio,
+      subjectRoiAverage: roi.average,
+      subjectRoiMedian: roi.median,
+      subjectRoiDarkPixelRatio: roi.darkPixelRatio,
       roiOverexposedPixelRatio: roi.overExposedRatio,
+      wholeFrameAverage: wholeFrame.average,
+      wholeFrameDarkPixelRatio: wholeFrame.darkPixelRatio,
       laplacianVariance,
       edgeDensity,
       sharpnessScore,
+      finalPostCaptureLightingDecision: tooDark ? 'DARK' : 'OK',
       finalValidationDecision: passed ? 'PASS' : 'FAIL',
     });
   }
