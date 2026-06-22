@@ -1,6 +1,7 @@
 import type { RefObject } from 'react';
 import type { CameraErrorKind, CameraStatus } from '../hooks/useCamera';
 import type { LightingState } from '../hooks/useLiveLighting';
+import { AngleGuide, angleForStep } from './AngleGuide';
 import { LightingBadge } from './LightingStatus';
 import './CameraCapture.css';
 
@@ -16,6 +17,16 @@ interface CameraCaptureProps {
   showFaceGuide?: boolean;
   /** Live face presence (front step only); null hides the indicator. */
   faceDetected?: boolean | null;
+  /** Current step id — picks which angle illustration to demonstrate. */
+  angleStepId?: string;
+  /** Short caption shown under the angle thumbnail (the step label). */
+  angleLabel?: string;
+  /** Play the large angle demo that shrinks into the corner thumbnail. */
+  showAngleDemo?: boolean;
+  /** In-viewport shutter handler; when set, a floating shutter overlays the preview. */
+  onCapture?: () => void;
+  /** Disable the shutter (e.g. lighting blocked or camera not ready). */
+  captureDisabled?: boolean;
   /** Flip the camera; when set, a floating switch button overlays the preview. */
   onSwitchCamera?: () => void;
   /** Disable the floating switch button (e.g. while the camera is restarting). */
@@ -56,11 +67,17 @@ export function CameraCapture({
   lightingState,
   showFaceGuide = false,
   faceDetected = null,
+  angleStepId,
+  angleLabel,
+  showAngleDemo = false,
+  onCapture,
+  captureDisabled = false,
   onSwitchCamera,
   switchDisabled = false,
   onRetry,
 }: CameraCaptureProps) {
   const showLivePreview = !capturedUrl && status === 'ready';
+  const angle = angleStepId ? angleForStep(angleStepId) : null;
   return (
     <div className="camera">
       {/* The video element is always mounted so the ref/stream stays stable;
@@ -95,6 +112,31 @@ export function CameraCapture({
         </div>
       )}
 
+      {/* Persistent corner reference: the required angle, top-left, out of the
+          way of the subject. Stays visible for the whole capture. */}
+      {showLivePreview && angle && (
+        <div className="angle-thumb" aria-hidden="true">
+          <AngleGuide angle={angle} className="angle-thumb__img" />
+          {angleLabel && (
+            <span className="angle-thumb__label">
+              <span className="angle-thumb__check" aria-hidden="true">
+                ✓
+              </span>
+              {angleLabel}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* State 1: large angle demonstration. Fades in, holds, then shrinks
+          toward the top-left thumbnail. CaptureFlow unmounts it after ~1s. */}
+      {showLivePreview && angle && showAngleDemo && (
+        <div className="angle-demo" aria-hidden="true">
+          <AngleGuide angle={angle} className="angle-demo__img" />
+          {angleLabel && <span className="angle-demo__label">{angleLabel}</span>}
+        </div>
+      )}
+
       {showLivePreview && onSwitchCamera && (
         <button
           type="button"
@@ -125,6 +167,20 @@ export function CameraCapture({
               strokeLinejoin="round"
             />
           </svg>
+        </button>
+      )}
+
+      {/* iPhone-style shutter, fixed to the bottom-centre of the viewport so
+          it's always reachable without scrolling. */}
+      {showLivePreview && onCapture && (
+        <button
+          type="button"
+          className="camera__shutter"
+          onClick={onCapture}
+          disabled={captureDisabled}
+          aria-label="צלמי תמונה"
+        >
+          <span className="camera__shutter-core" aria-hidden="true" />
         </button>
       )}
 

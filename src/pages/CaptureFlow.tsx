@@ -45,6 +45,9 @@ export function CaptureFlow({
   const [captured, setCaptured] = useState<CapturedPhoto | null>(null);
   // Whether the brief front-step intro guide is currently animating on screen.
   const [faceGuideVisible, setFaceGuideVisible] = useState(false);
+  // Whether the large angle demonstration is playing before it shrinks into
+  // the corner thumbnail (plays once per step when the live preview opens).
+  const [angleDemoVisible, setAngleDemoVisible] = useState(false);
 
   const step = steps[currentIndex];
   const stepValidation = getStepValidation(step.id);
@@ -75,6 +78,22 @@ export function CaptureFlow({
     const id = window.setTimeout(() => setFaceGuideVisible(false), FACE_GUIDE_MS);
     return () => window.clearTimeout(id);
   }, [isFrontStep, status, captured, step.id, facing]);
+
+  /** On-screen lifetime of the large angle demo (matches the CSS animation). */
+  const ANGLE_DEMO_MS = 1100;
+
+  // Play the large angle demonstration each time the live preview opens on a
+  // step (new step or after a retake). It fades in, holds, then shrinks into
+  // the corner thumbnail — which stays put for the rest of the capture.
+  useEffect(() => {
+    if (status !== 'ready' || captured !== null) {
+      setAngleDemoVisible(false);
+      return;
+    }
+    setAngleDemoVisible(true);
+    const id = window.setTimeout(() => setAngleDemoVisible(false), ANGLE_DEMO_MS);
+    return () => window.clearTimeout(id);
+  }, [status, captured, step.id]);
 
   // Analyse the live preview while it's on screen (no frozen still showing).
   // Face-required steps measure lighting on the subject (face + hair ROI).
@@ -212,6 +231,11 @@ export function CaptureFlow({
         lightingState={lightingState}
         showFaceGuide={isFrontStep && faceGuideVisible}
         faceDetected={isFrontStep ? faceDetected : null}
+        angleStepId={step.id}
+        angleLabel={step.label}
+        showAngleDemo={angleDemoVisible}
+        onCapture={() => void handleCapture()}
+        captureDisabled={lightingBlocked}
         onSwitchCamera={() => void switchCamera()}
         switchDisabled={status === 'requesting'}
         onRetry={() => void start()}
@@ -222,17 +246,10 @@ export function CaptureFlow({
         <QualityFeedback analyzing={analyzing} result={captured ? result : null} />
       </div>
 
-      <div className="capture__actions">
-        {!captured ? (
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => void handleCapture()}
-            disabled={status !== 'ready' || lightingBlocked}
-          >
-            צלמי תמונה
-          </button>
-        ) : (
+      {/* The live-preview shutter now lives inside the camera viewport (always
+          reachable, no scrolling). These actions only appear after a capture. */}
+      {captured && (
+        <div className="capture__actions">
           <div className="btn-row">
             <button type="button" className="btn btn-secondary" onClick={handleRetake}>
               צלמי מחדש
@@ -246,8 +263,8 @@ export function CaptureFlow({
               {continueLabel}
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
