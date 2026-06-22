@@ -199,6 +199,7 @@
   display: block;
   width: 100%;
   aspect-ratio: 3 / 4;
+  object-fit: contain;
 }
 
 .angle-thumb__label {
@@ -251,6 +252,7 @@
 .angle-demo__img {
   width: 66%;
   aspect-ratio: 3 / 4;
+  object-fit: contain;
   border-radius: 22px;
   border: 3px solid rgba(255, 255, 255, 0.95);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
