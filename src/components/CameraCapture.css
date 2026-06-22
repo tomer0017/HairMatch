@@ -359,6 +359,107 @@
   cursor: default;
 }
 
+/* ── In-frame capture confirmation actions ──────────────────────────────── */
+
+/* Overlay action bar: two pill buttons resting above the bottom edge of the
+   captured still, inside the image frame. A soft bottom-up scrim keeps them
+   legible over any photo. Laid out LTR so Retake stays physically left and
+   the primary Continue stays physically right, matching the design. */
+.capture-actions {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 6;
+  display: flex;
+  direction: ltr;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 18px clamp(16px, 5vw, 22px) clamp(18px, 6vw, 24px);
+  background: linear-gradient(
+    to top,
+    rgba(20, 17, 13, 0.55) 0%,
+    rgba(20, 17, 13, 0.28) 45%,
+    rgba(20, 17, 13, 0) 100%
+  );
+  animation: captureActionsIn 0.32s ease both;
+}
+
+.capture-actions__btn {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 200px;
+  min-height: 52px;
+  padding: 0 22px;
+  border-radius: 26px;
+  font-family: inherit;
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #fff;
+  cursor: pointer;
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.capture-actions__btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* Retake — translucent frosted white with a crisp white hairline border. */
+.capture-actions__btn--retake {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+}
+
+.capture-actions__btn--retake:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* Continue — warm gold/amber gradient, the primary action. */
+.capture-actions__btn--continue {
+  border: none;
+  background: linear-gradient(135deg, #d8b36a 0%, #e7c98c 100%);
+  box-shadow:
+    0 8px 22px rgba(184, 142, 61, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  text-shadow: 0 1px 2px rgba(120, 88, 28, 0.35);
+}
+
+.capture-actions__btn--continue:hover:not(:disabled) {
+  box-shadow:
+    0 10px 26px rgba(184, 142, 61, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.capture-actions__btn--continue:disabled {
+  opacity: 0.55;
+  cursor: default;
+  box-shadow: 0 4px 12px rgba(184, 142, 61, 0.25);
+}
+
+@keyframes captureActionsIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .capture-actions {
+    animation: fadeIn 0.32s ease both;
+  }
+}
+
 .camera__overlay {
   position: absolute;
   inset: 0;

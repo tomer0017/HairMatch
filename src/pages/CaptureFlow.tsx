@@ -238,6 +238,10 @@ export function CaptureFlow({
         captureDisabled={lightingBlocked}
         onSwitchCamera={() => void switchCamera()}
         switchDisabled={status === 'requesting'}
+        onRetake={captured ? handleRetake : undefined}
+        onContinue={captured ? handleContinue : undefined}
+        continueLabel={continueLabel}
+        continueDisabled={!canContinue}
         onRetry={() => void start()}
       />
 
@@ -245,26 +249,6 @@ export function CaptureFlow({
         {!captured && <LightingWarning state={lightingState} />}
         <QualityFeedback analyzing={analyzing} result={captured ? result : null} />
       </div>
-
-      {/* The live-preview shutter now lives inside the camera viewport (always
-          reachable, no scrolling). These actions only appear after a capture. */}
-      {captured && (
-        <div className="capture__actions">
-          <div className="btn-row">
-            <button type="button" className="btn btn-secondary" onClick={handleRetake}>
-              צלמי מחדש
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleContinue}
-              disabled={!canContinue}
-            >
-              {continueLabel}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

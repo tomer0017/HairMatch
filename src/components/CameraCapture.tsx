@@ -31,6 +31,14 @@ interface CameraCaptureProps {
   onSwitchCamera?: () => void;
   /** Disable the floating switch button (e.g. while the camera is restarting). */
   switchDisabled?: boolean;
+  /** Retake the captured still; when set, an in-frame overlay action appears. */
+  onRetake?: () => void;
+  /** Confirm/continue with the captured still (primary in-frame overlay action). */
+  onContinue?: () => void;
+  /** Label for the primary continue button (varies by step/mode). */
+  continueLabel?: string;
+  /** Disable the continue action until validation passes. */
+  continueDisabled?: boolean;
   /** Retry starting the camera after an error. */
   onRetry: () => void;
 }
@@ -74,6 +82,10 @@ export function CameraCapture({
   captureDisabled = false,
   onSwitchCamera,
   switchDisabled = false,
+  onRetake,
+  onContinue,
+  continueLabel = 'המשיכי',
+  continueDisabled = false,
   onRetry,
 }: CameraCaptureProps) {
   const showLivePreview = !capturedUrl && status === 'ready';
@@ -186,6 +198,33 @@ export function CameraCapture({
 
       {capturedUrl && (
         <img className="camera__still" src={capturedUrl} alt="התמונה שצולמה" />
+      )}
+
+      {/* In-frame overlay action bar: pill buttons resting above the bottom
+          edge of the captured photo. A soft gradient scrim behind keeps them
+          readable on any image. Only shown once a still is captured. */}
+      {capturedUrl && (onRetake || onContinue) && (
+        <div className="capture-actions" role="group">
+          {onRetake && (
+            <button
+              type="button"
+              className="capture-actions__btn capture-actions__btn--retake"
+              onClick={onRetake}
+            >
+              צלמי מחדש
+            </button>
+          )}
+          {onContinue && (
+            <button
+              type="button"
+              className="capture-actions__btn capture-actions__btn--continue"
+              onClick={onContinue}
+              disabled={continueDisabled}
+            >
+              {continueLabel}
+            </button>
+          )}
+        </div>
       )}
 
       {!capturedUrl && status === 'requesting' && (
