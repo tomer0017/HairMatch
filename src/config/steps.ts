@@ -24,16 +24,16 @@ export const PHOTO_STEPS: PhotoStep[] = [
     fileName: 'left-profile.jpg',
   },
   {
-    id: 'back-1',
+    id: 'back',
     label: 'מבט אחורי',
     instruction: 'בקשי ממישהו לצלם את השיער מאחור כך שכל האורך יופיע.',
-    fileName: 'back-1.jpg',
+    fileName: 'back.jpg',
   },
   {
-    id: 'back-2',
-    label: 'מבט אחורי נוסף',
-    instruction: 'צלמי תמונה נוספת מאחור מזווית מעט שונה.',
-    fileName: 'back-2.jpg',
+    id: 'top',
+    label: 'מבט מלמעלה',
+    instruction: 'הרכיני את הראש מטה כך שקודקוד השיער יופיע במלואו לכיוון המצלמה.',
+    fileName: 'top.jpg',
   },
 ];
 
