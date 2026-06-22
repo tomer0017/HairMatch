@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react';
+import { Questionnaire } from './components/Questionnaire';
 import { PHOTO_STEPS } from './config/steps';
 import { CaptureFlow } from './pages/CaptureFlow';
 import { Landing } from './pages/Landing';
 import { Review } from './pages/Review';
-import type { AppScreen, CapturedPhoto } from './types';
+import type { AppScreen, CapturedPhoto, HairProfile } from './types';
 
 /**
  * Root component. Owns the high-level screen state and the captured photos.
@@ -16,6 +17,7 @@ export default function App() {
   const [photos, setPhotos] = useState<Record<string, CapturedPhoto>>({});
   const [startIndex, setStartIndex] = useState(0);
   const [captureMode, setCaptureMode] = useState<'sequential' | 'single'>('sequential');
+  const [hairProfile, setHairProfile] = useState<HairProfile | null>(null);
 
   // Store a confirmed photo, revoking the previous object URL if we're replacing.
   const setPhoto = useCallback((stepId: string, photo: CapturedPhoto) => {
@@ -26,7 +28,12 @@ export default function App() {
     });
   }, []);
 
-  const handleStart = useCallback(() => {
+  // Landing → questionnaire. The camera is only opened once both questions are
+  // answered, so the questionnaire always precedes the sequential capture.
+  const handleStart = useCallback(() => setScreen('questionnaire'), []);
+
+  const handleQuestionnaireComplete = useCallback((profile: HairProfile) => {
+    setHairProfile(profile);
     setStartIndex(0);
     setCaptureMode('sequential');
     setScreen('capture');
@@ -50,6 +57,17 @@ export default function App() {
     );
   }
 
+  if (screen === 'questionnaire') {
+    return (
+      <main className="app-shell">
+        <Questionnaire
+          onComplete={handleQuestionnaireComplete}
+          onBack={handleBackToLanding}
+        />
+      </main>
+    );
+  }
+
   if (screen === 'capture') {
     return (
       <main className="app-shell">
@@ -67,7 +85,12 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <Review steps={PHOTO_STEPS} photos={photos} onRetake={handleRetake} />
+      <Review
+        steps={PHOTO_STEPS}
+        photos={photos}
+        hairProfile={hairProfile}
+        onRetake={handleRetake}
+      />
     </main>
   );
 }

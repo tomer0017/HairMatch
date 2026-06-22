@@ -82,5 +82,19 @@ export interface QualityResult {
   metrics: QualityMetrics;
 }
 
+/**
+ * Client answers from the pre-camera questionnaire. Captured before the camera
+ * opens and later appended to the WhatsApp share text — it does not affect the
+ * camera, AI analysis, or image processing in any way.
+ */
+export interface HairProfile {
+  /** Selected hair type label (Hebrew), e.g. "מתולתל". */
+  hairType: string;
+  /** Selected hair length label (Hebrew), e.g. "ארוך". */
+  hairLength: string;
+  /** Free-text length, only set when the length option is "אחר" (Other). */
+  hairLengthDescription?: string;
+}
+
 /** High-level screens of the application. */
-export type AppScreen = 'landing' | 'capture' | 'review';
+export type AppScreen = 'landing' | 'questionnaire' | 'capture' | 'review';

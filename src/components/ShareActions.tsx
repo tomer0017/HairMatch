@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { CapturedPhoto, PhotoStep } from '../types';
+import type { CapturedPhoto, HairProfile, PhotoStep } from '../types';
 import {
   blobToFile,
   canShareFiles,
@@ -12,6 +12,17 @@ import './ShareActions.css';
 interface ShareActionsProps {
   steps: PhotoStep[];
   photos: Record<string, CapturedPhoto>;
+  hairProfile: HairProfile | null;
+}
+
+/** Build the Hebrew hair-profile lines appended to the WhatsApp share text. */
+function buildHairProfileText(profile: HairProfile | null): string {
+  if (!profile) return '';
+  const lines = [`סוג שיער: ${profile.hairType}`, `אורך שיער: ${profile.hairLength}`];
+  if (profile.hairLengthDescription) {
+    lines.push(`פירוט: ${profile.hairLengthDescription}`);
+  }
+  return lines.join('\n');
 }
 
 /**
@@ -21,9 +32,14 @@ interface ShareActionsProps {
  * The app never sends a message automatically — it only hands the files to the
  * OS share sheet or to the browser's download mechanism.
  */
-export function ShareActions({ steps, photos }: ShareActionsProps) {
+export function ShareActions({ steps, photos, hairProfile }: ShareActionsProps) {
   const files = useMemo(() => createShareableFiles(steps, photos), [steps, photos]);
   const shareSupported = useMemo(() => canShareFiles(files), [files]);
+  const shareText = useMemo(() => {
+    const hairText = buildHairProfileText(hairProfile);
+    const base = 'התמונות לבדיקת התאמת התוספות';
+    return hairText ? `${base}\n\n${hairText}` : base;
+  }, [hairProfile]);
 
   const [sharing, setSharing] = useState(false);
   const [zipping, setZipping] = useState(false);
@@ -36,7 +52,7 @@ export function ShareActions({ steps, photos }: ShareActionsProps) {
       await navigator.share({
         files,
         title: 'תמונות שיער לבדיקה',
-        text: 'התמונות לבדיקת התאמת התוספות',
+        text: shareText,
       });
     } catch (err) {
       // AbortError = the user closed the sheet; that is not a real error.

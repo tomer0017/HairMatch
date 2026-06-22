@@ -40,6 +40,36 @@ let detectorState: DetectorState = 'unloaded';
 let loadPromise: Promise<FaceDetector | null> | null = null;
 let lastTimestamp = 0;
 
+/** Throttle the DEV detection log so the hot preview loop doesn't flood console. */
+let lastDetectLog = 0;
+const DETECT_LOG_INTERVAL_MS = 1000;
+
+/**
+ * Human-readable description of the frame source, so the DEV log proves which
+ * element MediaPipe actually analysed — it must always be the live <video>,
+ * never an overlay thumbnail, reference <img>, badge or other DOM node.
+ */
+function describeSource(source: FrameSource): Record<string, unknown> {
+  if (typeof HTMLVideoElement !== 'undefined' && source instanceof HTMLVideoElement) {
+    return {
+      kind: 'HTMLVideoElement',
+      className: source.className,
+      id: source.id || null,
+      currentSrc: source.currentSrc || null,
+      hasStream: source.srcObject instanceof MediaStream,
+      videoWidth: source.videoWidth,
+      videoHeight: source.videoHeight,
+    };
+  }
+  if (typeof HTMLImageElement !== 'undefined' && source instanceof HTMLImageElement) {
+    return { kind: 'HTMLImageElement', className: source.className, src: source.src };
+  }
+  if (typeof HTMLCanvasElement !== 'undefined' && source instanceof HTMLCanvasElement) {
+    return { kind: 'HTMLCanvasElement', className: source.className };
+  }
+  return { kind: source?.constructor?.name ?? typeof source };
+}
+
 /** True unless the detector permanently failed to load. */
 export function isFaceDetectionAvailable(): boolean {
   return detectorState !== 'failed';
@@ -118,6 +148,38 @@ function runDetection(
   }
 
   const best = pickBest(result.detections);
+
+  if (import.meta.env.DEV) {
+    const now = performance.now();
+    if (now - lastDetectLog >= DETECT_LOG_INTERVAL_MS) {
+      lastDetectLog = now;
+      const bb = best?.boundingBox;
+      // eslint-disable-next-line no-console
+      console.debug('[faceDetection]', {
+        // Proof of what was analysed: must be the live camera <video>, never an
+        // overlay thumbnail / reference image / badge / label.
+        source: describeSource(source),
+        analyzedDimensions: { width, height },
+        faceCount: result.detections.length,
+        detected: !!best?.boundingBox,
+        // Raw pixel box from the model (relative to the analysed video frame)…
+        boundingBoxPx: bb
+          ? { x: bb.originX, y: bb.originY, width: bb.width, height: bb.height }
+          : null,
+        // …and the normalised 0–1 box returned to callers.
+        boundingBoxNorm: bb
+          ? {
+              x: bb.originX / width,
+              y: bb.originY / height,
+              width: bb.width / width,
+              height: bb.height / height,
+            }
+          : null,
+        confidence: best?.categories?.[0]?.score ?? 0,
+      });
+    }
+  }
+
   if (!best || !best.boundingBox) return NO_FACE;
 
   const bb = best.boundingBox;
