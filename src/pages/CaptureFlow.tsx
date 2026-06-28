@@ -9,7 +9,7 @@ import { useLiveLighting } from '../hooks/useLiveLighting';
 import { usePhotoValidation } from '../hooks/usePhotoValidation';
 import { getStepValidation } from '../config/validation';
 import type { CapturedPhoto, PhotoStep } from '../types';
-import photographyGuide from '../assets/Photography Guide.jpg';
+import photographyGuide from '../assets/photography-guide.jpg';
 import './CaptureFlow.css';
 
 interface CaptureFlowProps {
