@@ -9,6 +9,7 @@ import { useLiveLighting } from '../hooks/useLiveLighting';
 import { usePhotoValidation } from '../hooks/usePhotoValidation';
 import { getStepValidation } from '../config/validation';
 import type { CapturedPhoto, PhotoStep } from '../types';
+import photographyGuide from '../assets/Photography Guide.png';
 import './CaptureFlow.css';
 
 interface CaptureFlowProps {
@@ -48,9 +49,15 @@ export function CaptureFlow({
   // Whether the large angle demonstration is playing before it shrinks into
   // the corner thumbnail (plays once per step when the live preview opens).
   const [angleDemoVisible, setAngleDemoVisible] = useState(false);
+  // The back view needs a second person to take it, so an extra guidance popup
+  // is shown before its capture screen. Dismissed via its "המשך" button.
+  const [backGuideDismissed, setBackGuideDismissed] = useState(false);
 
   const step = steps[currentIndex];
   const stepValidation = getStepValidation(step.id);
+  // Show the helper popup before the back-view capture screen (and not once a
+  // photo for that step has already been taken). Additive to existing guidance.
+  const showBackGuide = step.id === 'back' && !backGuideDismissed && !captured;
   // The front portrait step gets the brief Face ID-style intro guide + live
   // face indicator. The guide only plays momentarily, then frees up the frame.
   const isFrontStep = step.id === 'front';
@@ -155,6 +162,8 @@ export function CaptureFlow({
       pendingUrlRef.current = null;
       setCaptured(null);
       reset();
+      // Re-arm the back-view popup so it shows again on each entry to that step.
+      setBackGuideDismissed(false);
       setCurrentIndex(index);
     },
     [reset],
@@ -249,6 +258,33 @@ export function CaptureFlow({
         {!captured && <LightingWarning state={lightingState} />}
         <QualityFeedback analyzing={analyzing} result={captured ? result : null} />
       </div>
+
+      {showBackGuide && (
+        <div
+          className="back-guide fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="back-guide-title"
+        >
+          <div className="back-guide__card">
+            <h2 id="back-guide-title" className="back-guide__title">
+              לצילום תמונה זו יש להעזר באדם נוסף
+            </h2>
+            <img
+              className="back-guide__image"
+              src={photographyGuide}
+              alt="צילום השיער מאחור בעזרת אדם נוסף"
+            />
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setBackGuideDismissed(true)}
+            >
+              המשך
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -5,22 +5,22 @@
    ============================================================ */
 
 :root {
-  /* Warm neutral palette */
-  --color-bg: #fbf9f6;
+  /* Clean monochrome palette — matches the Yarin Sasson wordmark */
+  --color-bg: #ffffff;
   --color-surface: #ffffff;
-  --color-surface-soft: #f6f1ea;
-  --color-border: #ece4d8;
-  --color-border-strong: #ddd0bd;
+  --color-surface-soft: #f5f4f2;
+  --color-border: #e7e4df;
+  --color-border-strong: #cfcac2;
 
-  /* Accent — muted gold / champagne */
-  --color-accent: #c9a66b;
-  --color-accent-deep: #b48f50;
-  --color-accent-soft: #f3ead9;
+  /* Accent — refined near-black */
+  --color-accent: #211e1a;
+  --color-accent-deep: #000000;
+  --color-accent-soft: #f1efeb;
 
   /* Text */
-  --color-text: #2c2823;
-  --color-text-soft: #6f675c;
-  --color-text-muted: #9b9286;
+  --color-text: #14110d;
+  --color-text-soft: #5f5950;
+  --color-text-muted: #908a80;
 
   /* Feedback */
   --color-success: #4f8a6b;
@@ -35,9 +35,9 @@
   --radius-pill: 999px;
 
   /* Shadows — soft and diffuse */
-  --shadow-soft: 0 10px 30px rgba(120, 100, 70, 0.08);
-  --shadow-card: 0 18px 48px rgba(120, 100, 70, 0.12);
-  --shadow-button: 0 10px 24px rgba(180, 143, 80, 0.28);
+  --shadow-soft: 0 10px 30px rgba(20, 17, 13, 0.06);
+  --shadow-card: 0 18px 48px rgba(20, 17, 13, 0.1);
+  --shadow-button: 0 10px 24px rgba(20, 17, 13, 0.22);
 
   /* Typography */
   --font-body: 'Heebo', system-ui, -apple-system, 'Segoe UI', sans-serif;

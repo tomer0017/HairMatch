@@ -1,3 +1,4 @@
+import logo from '../assets/logo.jpg';
 import './LandingPage.css';
 
 interface LandingPageProps {
@@ -5,7 +6,8 @@ interface LandingPageProps {
 }
 
 const TIPS = [
-  'צלמי במקום מואר',
+  'צילום באור יום - חובה',
+  'לא להצטלם עם שיער רטוב ❌',
   'הימנעי משמש ישירה',
   'נקי את עדשת המצלמה',
   'ודאי שכל השיער נראה בתמונה',
@@ -19,13 +21,12 @@ const TIPS = [
 export function LandingPage({ onStart }: LandingPageProps) {
   return (
     <div className="landing fade-in">
-      <div className="landing__brand" aria-hidden="true">
-        <span className="landing__brand-mark" />
-        <span className="landing__brand-name">התאמת תוספות</span>
+      <div className="landing__brand">
+        <img className="landing__logo" src={logo} alt="Yarin Sasson" />
       </div>
 
       <header className="landing__header">
-        <h1 className="landing__title">מערכת התאמת תוספות</h1>
+        <h1 className="landing__title">מערכת התאמת תוספות שיער</h1>
         <p className="landing__subtitle">
           כדי שנוכל להתאים עבורך את התוספות בצורה המדויקת ביותר, נבקש לצלם מספר
           תמונות שיער ברורות מזוויות שונות.

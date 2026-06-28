@@ -18,7 +18,7 @@ interface ShareActionsProps {
 /** Build the Hebrew hair-profile lines appended to the WhatsApp share text. */
 function buildHairProfileText(profile: HairProfile | null): string {
   if (!profile) return '';
-  const lines = [`סוג שיער: ${profile.hairType}`, `אורך שיער: ${profile.hairLength}`];
+  const lines = [`אורך שיער: ${profile.hairLength}`];
   if (profile.hairLengthDescription) {
     lines.push(`פירוט: ${profile.hairLengthDescription}`);
   }

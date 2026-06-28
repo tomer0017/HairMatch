@@ -14,14 +14,6 @@ export interface QuestionOption {
   hint?: string;
 }
 
-export const HAIR_TYPE_OPTIONS: QuestionOption[] = [
-  { id: 'straight', label: 'חלק' },
-  { id: 'wavy', label: 'גלי' },
-  { id: 'curly', label: 'מתולתל' },
-  { id: 'coily', label: 'אפרו / תלתלים צפופים' },
-  { id: 'other', label: 'אחר' },
-];
-
 export const HAIR_LENGTH_OPTIONS: QuestionOption[] = [
   { id: 'short', label: 'קצר', hint: 'מעל הכתפיים' },
   { id: 'medium', label: 'בינוני', hint: 'באורך הכתפיים' },
