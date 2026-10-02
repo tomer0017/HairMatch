@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { HAIR_LENGTH_OPTIONS, type QuestionOption } from '../config/questionnaire';
 import type { HairProfile } from '../types';
+import logo from '../assets/logo.jpg';
+import hairLengths from '../assets/hair-lengths/comparison.jpg';
 import './Questionnaire.css';
 
 interface QuestionnaireProps {
@@ -39,6 +41,7 @@ export function Questionnaire({ onComplete, onBack }: QuestionnaireProps) {
   return (
     <div className="quiz fade-in">
       <header className="quiz__header">
+        <img className="quiz__logo" src={logo} alt="Yarin Sasson" />
         <h1 className="quiz__title">מהו אורך השיער שלך?</h1>
       </header>
 
@@ -73,7 +76,7 @@ export function Questionnaire({ onComplete, onBack }: QuestionnaireProps) {
           onClick={handleFinish}
           disabled={!canFinish}
         >
-          המשך למצלמה
+          המשיכי לצילום
         </button>
 
         <button type="button" className="btn btn-ghost" onClick={onBack}>
@@ -94,7 +97,7 @@ interface OptionListProps {
 /** Large, touch-friendly single-select cards. */
 function OptionList({ options, name, selectedId, onSelect }: OptionListProps) {
   return (
-    <div className="quiz__options" role="radiogroup">
+    <div className="quiz__options" role="radiogroup" aria-label="אורך השיער">
       {options.map((option) => {
         const selected = option.id === selectedId;
         return (
@@ -111,6 +114,11 @@ function OptionList({ options, name, selectedId, onSelect }: OptionListProps) {
               <span className="quiz-card__label">{option.label}</span>
               {option.hint && <span className="quiz-card__hint">{option.hint}</span>}
             </span>
+            <span
+              className={`quiz-card__example quiz-card__example--${option.id}`}
+              style={{ backgroundImage: option.id === OTHER_ID ? undefined : `url(${hairLengths})` }}
+              aria-hidden="true"
+            >{option.id === OTHER_ID ? '?' : null}</span>
             <span className="quiz-card__check" aria-hidden="true">
               {selected ? '✓' : ''}
             </span>

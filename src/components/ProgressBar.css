@@ -36,3 +36,8 @@
   background: linear-gradient(90deg, var(--color-accent), var(--color-accent-deep));
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+.progress__track { height: 4px; background: #e6e0d7; }
+.progress__fill { background: #151515; }
+.progress__count { font-size: .8rem; }
+.progress__label { font-size: .75rem; }

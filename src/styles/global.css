@@ -6,8 +6,8 @@
 
 :root {
   /* Clean monochrome palette — matches the Yarin Sasson wordmark */
-  --color-bg: #ffffff;
-  --color-surface: #ffffff;
+  --color-bg: #f7f5f0;
+  --color-surface: #fdfcf9;
   --color-surface-soft: #f5f4f2;
   --color-border: #e7e4df;
   --color-border-strong: #cfcac2;
@@ -20,7 +20,7 @@
   /* Text */
   --color-text: #14110d;
   --color-text-soft: #5f5950;
-  --color-text-muted: #908a80;
+  --color-text-muted: #756f66;
 
   /* Feedback */
   --color-success: #4f8a6b;
@@ -36,12 +36,12 @@
 
   /* Shadows — soft and diffuse */
   --shadow-soft: 0 10px 30px rgba(20, 17, 13, 0.06);
-  --shadow-card: 0 18px 48px rgba(20, 17, 13, 0.1);
-  --shadow-button: 0 10px 24px rgba(20, 17, 13, 0.22);
+  --shadow-card: 0 4px 18px rgba(20, 17, 13, 0.04);
+  --shadow-button: 0 3px 10px rgba(20, 17, 13, 0.08);
 
   /* Typography */
   --font-body: 'Heebo', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-display: 'Frank Ruhl Libre', 'Heebo', serif;
+  --font-display: var(--font-body);
 
   /* Layout */
   --content-max: 460px;
@@ -78,8 +78,8 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
-  font-weight: 600;
-  line-height: 1.25;
+  font-weight: 700;
+  line-height: 1.3;
   margin: 0;
 }
 
@@ -105,8 +105,8 @@ img {
   width: 100%;
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: clamp(20px, 5vw, 32px) clamp(18px, 5vw, 28px)
-    calc(28px + env(safe-area-inset-bottom));
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
 }
@@ -118,7 +118,7 @@ img {
   justify-content: center;
   gap: 10px;
   width: 100%;
-  padding: 18px 24px;
+  padding: 14px 20px;
   font-size: 1.075rem;
   font-weight: 600;
   border-radius: var(--radius-pill);
@@ -127,7 +127,7 @@ img {
     box-shadow 0.2s ease,
     background 0.2s ease,
     opacity 0.2s ease;
-  min-height: 58px;
+  min-height: 52px;
 }
 
 .btn:active {
@@ -135,7 +135,7 @@ img {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-deep));
+  background: #141414;
   color: #fff;
   box-shadow: var(--shadow-button);
 }
@@ -215,3 +215,5 @@ img {
     transition-duration: 0.001ms !important;
   }
 }
+
+button:focus-visible, input:focus-visible { outline: 2px solid var(--color-success); outline-offset: 4px; }

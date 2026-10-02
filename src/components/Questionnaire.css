@@ -133,3 +133,24 @@
   gap: 8px;
   margin-top: 4px;
 }
+
+/* Compact comparison rows keep all five choices within comfortable reach. */
+.quiz { gap: 16px; padding-block: 0; }
+.quiz__header { gap: 12px; align-items: center; }
+.quiz__logo { width: 112px; mix-blend-mode: multiply; }
+.quiz__title { font-size: clamp(1.3rem, 5.4vw, 1.65rem); }
+.quiz__options { gap: 9px; }
+.quiz-card { padding: 0 16px; min-height: 82px; gap: 12px; border-radius: 18px; box-shadow: 0 2px 8px #211e1a04; overflow: hidden; }
+.quiz-card__text { flex: 1; }
+.quiz-card__label { font-size: 1rem; }
+.quiz-card__hint { font-size: .8rem; }
+.quiz-card__check { width: 23px; height: 23px; }
+.quiz-card--selected { border-color: #171717; box-shadow: inset 0 0 0 .5px #171717; }
+.quiz-card__example { flex: 0 0 34px; height: 90px; background-size: 400% 100%; background-repeat: no-repeat; }
+.quiz-card__example--short { background-position: 0% center; }
+.quiz-card__example--medium { background-position: 33.333% center; }
+.quiz-card__example--long { background-position: 66.667% center; }
+.quiz-card__example--very-long { background-position: 100% center; }
+.quiz-card__example--other { display: grid; place-items: center; font-size: 28px; color: var(--color-text-muted); }
+.quiz__actions { gap: 0; }
+.quiz__header { background: var(--color-bg); }

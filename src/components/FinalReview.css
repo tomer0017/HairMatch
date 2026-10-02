@@ -35,3 +35,11 @@
   max-width: 50%;
   margin-inline: auto;
 }
+
+.review { gap: 18px; }
+.review__title { font-size: 1.45rem; }
+.review__subtitle { font-size: .85rem; }
+.review__grid { gap: 12px; }
+.review__grid > :last-child:nth-child(odd) { max-width: none; width: 100%; margin: 0; display: grid; grid-template-columns: 1fr 1fr; }
+.review__grid > :last-child:nth-child(odd) .step-card__media { aspect-ratio: 1; }
+.review__grid > :last-child:nth-child(odd) .step-card__footer { justify-content: center; }

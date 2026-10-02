@@ -96,3 +96,11 @@
   border-radius: var(--radius-md);
   object-fit: cover;
 }
+
+.capture { gap: 14px; }
+.capture__back { width: 44px; height: 44px; border: 1px solid var(--color-border); }
+.capture__tip { margin: 0; padding: 9px 12px; font-size: .76rem; border-radius: 14px; background: #eee7db80; }
+.back-guide { padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom)); }
+.back-guide__card { padding: 20px; gap: 16px; max-height: 100%; overflow-y: auto; }
+.back-guide__image { min-height: 0; max-height: 48dvh; object-fit: contain; }
+.back-guide__title { font-size: 1.15rem; }

@@ -27,3 +27,8 @@
   color: var(--color-text-muted);
   line-height: 1.5;
 }
+
+/* In-flow action area cannot obscure any photo or retake control. */
+.review-page { gap: 20px; }
+.review-page__actions { position: static; padding-top: 0; background: none; }
+.review-page__hint { font-size: .75rem; }

@@ -1,5 +1,6 @@
 import logo from '../assets/logo.jpg';
 import './LandingPage.css';
+import { PreparationIcon } from './PreparationIcon';
 
 interface LandingPageProps {
   onStart: () => void;
@@ -7,7 +8,7 @@ interface LandingPageProps {
 
 const TIPS = [
   'צילום באור יום - חובה',
-  'לא להצטלם עם שיער רטוב ❌',
+  'לא להצטלם עם שיער רטוב',
   'נקי את עדשת המצלמה',
   'ודאי שכל השיער נראה בתמונה',
   'הסירי כובעים ואביזרי שיער',
@@ -35,12 +36,13 @@ export function LandingPage({ onStart }: LandingPageProps) {
       <section className="landing__tips card" aria-label="טיפים לצילום מוצלח">
         <h2 className="landing__tips-title">לתמונות מושלמות</h2>
         <ul className="landing__tips-list">
-          {TIPS.map((tip) => (
+          {TIPS.map((tip, index) => (
             <li key={tip} className="landing__tip">
               <span className="landing__tip-check" aria-hidden="true">
                 ✓
               </span>
-              <span>{tip}</span>
+              <span className="landing__tip-text">{tip}</span>
+              <PreparationIcon index={index} />
             </li>
           ))}
         </ul>

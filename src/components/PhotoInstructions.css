@@ -30,3 +30,6 @@
   color: var(--color-text-soft);
   line-height: 1.5;
 }
+
+.instructions__title { font-size: 1.35rem; }
+.instructions__body { font-size: .9rem; line-height: 1.5; }

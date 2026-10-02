@@ -88,3 +88,19 @@
   color: var(--color-text-muted);
   line-height: 1.5;
 }
+
+.landing { gap: 18px; padding-block: 0; }
+.landing__logo { width: 170px; mix-blend-mode: multiply; }
+.landing__title { font-size: clamp(1.25rem, 5.6vw, 1.65rem); }
+.landing__header { gap: 12px; }
+.landing__subtitle { font-size: .92rem; line-height: 1.7; }
+.landing__tips { padding: 22px 18px; border-color: #e7e4df80; border-radius: 24px; }
+.landing__tips-title { font-size: 1.05rem; }
+.landing__tips-list { gap: 0; }
+.landing__tip { min-height: 44px; font-size: .9rem; gap: 12px; }
+.landing__tip-check { width: 20px; height: 20px; background: #d6e9d8; color: #356a4b; }
+.landing__privacy { font-size: .73rem; }
+.landing__tip-text { flex: 1; }
+.landing__tip-icon { flex: 0 0 23px; width: 23px; height: 23px; }
+.landing__tip:first-child .landing__tip-icon { color: #b88227; }
+.landing__brand { background: var(--color-bg); }

@@ -19,7 +19,7 @@ export function Review({ steps, photos, hairProfile, onRetake }: ReviewProps) {
       <div className="review-page__actions">
         <ShareActions steps={steps} photos={photos} hairProfile={hairProfile} />
         <p className="review-page__hint">
-          לאחר השליחה, בחרי בוואטסאפ מתוך תפריט השיתוף ושלחי את התמונות לספר.
+          בלחיצה על שליחה, בחרי בוואטסאפ מתוך תפריט השיתוף ושלחי את התמונות לספר.
         </p>
       </div>
     </div>

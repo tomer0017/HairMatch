@@ -93,14 +93,14 @@ export function CaptureFlow({
   // step (new step or after a retake). It fades in, holds, then shrinks into
   // the corner thumbnail — which stays put for the rest of the capture.
   useEffect(() => {
-    if (status !== 'ready' || captured !== null) {
+    if (status !== 'ready' || captured !== null || showBackGuide) {
       setAngleDemoVisible(false);
       return;
     }
     setAngleDemoVisible(true);
     const id = window.setTimeout(() => setAngleDemoVisible(false), ANGLE_DEMO_MS);
     return () => window.clearTimeout(id);
-  }, [status, captured, step.id]);
+  }, [status, captured, step.id, showBackGuide]);
 
   // Analyse the live preview while it's on screen (no frozen still showing).
   // Face-required steps measure lighting on the subject (face + hair ROI).
@@ -201,7 +201,7 @@ export function CaptureFlow({
       ? 'שמרי וחזרי'
       : currentIndex >= steps.length - 1
         ? 'סיום וצפייה בתמונות'
-        : 'המשיכי';
+        : 'השתמשי והמשיכי';
 
   return (
     <div className="capture fade-in">
@@ -268,7 +268,7 @@ export function CaptureFlow({
         >
           <div className="back-guide__card">
             <h2 id="back-guide-title" className="back-guide__title">
-              לצילום תמונה זו יש להעזר באדם נוסף
+              לצילום מאחור, בקשי עזרה מאדם נוסף
             </h2>
             <img
               className="back-guide__image"
@@ -280,7 +280,7 @@ export function CaptureFlow({
               className="btn btn-primary"
               onClick={() => setBackGuideDismissed(true)}
             >
-              המשך
+              המשיכי לצילום
             </button>
           </div>
         </div>

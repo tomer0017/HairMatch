@@ -55,3 +55,5 @@
   line-height: 1.5;
   white-space: pre-line;
 }
+
+.lighting-badge { left: 10px; top: 12px; transform: none; padding: 7px 10px; font-size: .75rem; gap: 6px; box-shadow: none; animation: none; }
