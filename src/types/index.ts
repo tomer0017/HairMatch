@@ -8,6 +8,8 @@ export interface PhotoStep {
   id: string;
   /** Hebrew label shown to the user (e.g. "מבט קדמי"). */
   label: string;
+  /** Optional small marker shown beside the label (e.g. a sun for daylight). */
+  icon?: string;
   /** Short Hebrew instruction for how to take the photo. */
   instruction: string;
   /** File name used when creating the shareable image (e.g. "front.jpg"). */

@@ -70,6 +70,10 @@ export function CaptureFlow({
   // Show the helper popup before the back-view capture screen (and not once a
   // photo for that step has already been taken). Additive to existing guidance.
   const showBackGuide = step.id === 'back' && !backGuideDismissed && !captured;
+  // The second back view has its own short preparation card explaining why it's
+  // needed (natural daylight), so it never feels like a duplicate request.
+  const showDaylightGuide = step.id === 'back-daylight' && !backGuideDismissed && !captured;
+  const showPrepGuide = showBackGuide || showDaylightGuide;
   // The front portrait step gets the brief Face ID-style intro guide + live
   // face indicator. The guide only plays momentarily, then frees up the frame.
   const isFrontStep = step.id === 'front';
@@ -105,14 +109,14 @@ export function CaptureFlow({
   // step (new step or after a retake). It fades in, holds, then shrinks into
   // the corner thumbnail — which stays put for the rest of the capture.
   useEffect(() => {
-    if (status !== 'ready' || captured !== null || showBackGuide) {
+    if (status !== 'ready' || captured !== null || showPrepGuide) {
       setAngleDemoVisible(false);
       return;
     }
     setAngleDemoVisible(true);
     const id = window.setTimeout(() => setAngleDemoVisible(false), ANGLE_DEMO_MS);
     return () => window.clearTimeout(id);
-  }, [status, captured, step.id, showBackGuide]);
+  }, [status, captured, step.id, showPrepGuide]);
 
   // Analyse the live preview while it's on screen (no frozen still showing).
   // Face-required steps measure lighting on the subject (face + hair ROI).
@@ -219,7 +223,7 @@ export function CaptureFlow({
       setCaptured(null);
       setCountdown(null);
       reset();
-      // Re-arm the back-view popup so it shows again on each entry to that step.
+      // Re-arm the preparation popups so they show again on each entry to a back step.
       setBackGuideDismissed(false);
       setCurrentIndex(index);
     },
@@ -342,6 +346,49 @@ export function CaptureFlow({
               onClick={() => setBackGuideDismissed(true)}
             >
               המשיכי לצילום
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showDaylightGuide && (
+        <div
+          className="back-guide fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="daylight-guide-title"
+        >
+          <div className="back-guide__card">
+            <h2 id="daylight-guide-title" className="back-guide__title">
+              עוד תמונה אחת באור טבעי
+            </h2>
+            <p className="back-guide__body">
+              כדי שנוכל לראות את גוון השיער בצורה מדויקת יותר, צלמי תמונה נוספת מאחור באור
+              יום טבעי.
+            </p>
+            <ul className="back-guide__options">
+              <li>
+                <span aria-hidden="true">☀️</span>
+                ליד חלון
+              </li>
+              <li>
+                <span aria-hidden="true">🌤️</span>
+                במרפסת
+              </li>
+              <li>
+                <span aria-hidden="true">🌿</span>
+                בחוץ באור יום
+              </li>
+            </ul>
+            <p className="back-guide__note">
+              עדיף אור טבעי רך, ללא שמש ישירה וחזקה על השיער.
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setBackGuideDismissed(true)}
+            >
+              אני במקום מתאים
             </button>
           </div>
         </div>

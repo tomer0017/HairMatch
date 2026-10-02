@@ -8,7 +8,7 @@ interface FinalReviewProps {
   onRetake: (stepIndex: number) => void;
 }
 
-/** Responsive grid of all five captured photos with their labels. */
+/** Responsive grid of all captured photos with their labels. */
 export function FinalReview({ steps, photos, onRetake }: FinalReviewProps) {
   return (
     <section className="review">
@@ -26,7 +26,7 @@ export function FinalReview({ steps, photos, onRetake }: FinalReviewProps) {
           return (
             <StepCard
               key={step.id}
-              label={step.label}
+              label={step.icon ? `${step.label} ${step.icon}` : step.label}
               url={photo.url}
               index={index + 1}
               onRetake={() => onRetake(index)}

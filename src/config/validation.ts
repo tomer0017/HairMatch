@@ -24,6 +24,14 @@ const STEP_VALIDATION: Record<string, StepValidationConfig> = {
     lightingMode: 'face',
   },
   back: { stepId: 'back', requireFace: false, faceConfidenceMin: 0, lightingMode: 'center' },
+  // Same policy as the standard back view — natural light is requested through
+  // guidance only; a browser camera can't verify the light source.
+  'back-daylight': {
+    stepId: 'back-daylight',
+    requireFace: false,
+    faceConfidenceMin: 0,
+    lightingMode: 'center',
+  },
   top: { stepId: 'top', requireFace: false, faceConfidenceMin: 0, lightingMode: 'center' },
 };
 

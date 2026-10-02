@@ -10,7 +10,15 @@ export function PhotoInstructions({ step }: PhotoInstructionsProps) {
   return (
     <div className="instructions">
       <div className="instructions__text">
-        <h2 className="instructions__title">{step.label}</h2>
+        <h2 className="instructions__title">
+          {step.label}
+          {step.icon && (
+            <span className="instructions__icon" aria-hidden="true">
+              {' '}
+              {step.icon}
+            </span>
+          )}
+        </h2>
         <p className="instructions__body">{step.instruction}</p>
       </div>
     </div>

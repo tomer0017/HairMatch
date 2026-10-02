@@ -29,7 +29,8 @@
   gap: 14px;
 }
 
-/* The last odd item spans nicely centered when count is odd (5 photos). */
+/* The last odd item spans nicely centered when the count is odd. With the
+   six required photos the grid is a plain 2 × 3 and these rules don't apply. */
 .review__grid > :last-child:nth-child(odd) {
   grid-column: 1 / -1;
   max-width: 50%;
