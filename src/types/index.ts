@@ -28,7 +28,7 @@ export type ValidationLevel = 'error';
 
 /** One detected quality problem with the captured image. */
 export interface ValidationIssue {
-  code: 'dark' | 'bright' | 'blurry' | 'resolution' | 'person';
+  code: 'dark' | 'backlit' | 'bright' | 'blurry' | 'resolution' | 'person';
   message: string;
 }
 

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   calculateLightingMetrics,
+  explainDarkCenter,
   regionStats,
   type LiveLightingMetrics,
 } from '../utils/brightness';
 import { detectFaceSync, ensureFaceDetector } from '../utils/faceDetection';
-import { centerPortraitRect, faceCoreRect, faceHairRect } from '../utils/roi';
+import { centerPortraitRect, centerRect, faceCoreRect, faceHairRect } from '../utils/roi';
 
 /**
  * Lighting verdict for the live preview.
@@ -13,12 +14,13 @@ import { centerPortraitRect, faceCoreRect, faceHairRect } from '../utils/roi';
  * - 'ok'      : good lighting (🟢)
  * - 'low'     : usable but a bit dim (🟠) — capture still allowed
  * - 'dark'    : too dark to shoot (🔴) — capture blocked
+ * - 'backlit' : light behind the subject, hair crushed to black (🔴) — capture blocked
  * - 'bright'  : overexposed (🔴) — capture blocked
  */
-export type LightingState = 'pending' | 'ok' | 'low' | 'dark' | 'bright';
+export type LightingState = 'pending' | 'ok' | 'low' | 'dark' | 'backlit' | 'bright';
 
 /** Where the live lighting metrics were measured. */
-export type LiveLightingSource = 'faceROI' | 'centerPortraitROI' | 'wholeFrame';
+export type LiveLightingSource = 'faceROI' | 'centerPortraitROI' | 'centerROI' | 'wholeFrame';
 
 /** How often to sample the preview (ms). 300–500ms keeps it cheap & responsive. */
 const SAMPLE_INTERVAL_MS = 400;
@@ -189,9 +191,22 @@ export function useLiveLighting(
           nextState = classify(m);
         }
       } else {
-        m = calculateLightingMetrics(data);
-        source = 'wholeFrame';
-        nextState = classify(m);
+        // Back / top views: mirror the post-capture check — darkness is judged
+        // on the centre ROI, and a dark centre is explained against the whole
+        // frame so naturally dark hair in a lit room is never flagged.
+        const frame = regionStats(data, w, h, { x0: 0, y0: 0, x1: w, y1: h });
+        const center = regionStats(data, w, h, centerRect(w, h, 0.65));
+        m = toLiveMetrics(center);
+        source = 'centerROI';
+        const centerState = classify(m);
+        if (classify(toLiveMetrics(frame)) === 'bright') {
+          nextState = 'bright';
+        } else if (centerState === 'dark' || centerState === 'low') {
+          const reason = explainDarkCenter(center, frame);
+          nextState = reason === 'darkHair' ? 'ok' : centerState === 'low' ? 'low' : reason;
+        } else {
+          nextState = centerState;
+        }
       }
 
       if (cancelled) return;

@@ -28,6 +28,14 @@ interface CameraCaptureProps {
   onCapture?: () => void;
   /** Disable the shutter (e.g. lighting blocked or camera not ready). */
   captureDisabled?: boolean;
+  /** Whether the optional self-timer is armed. */
+  timerEnabled?: boolean;
+  /** Toggle the self-timer; when set, a small timer control overlays the preview. */
+  onToggleTimer?: () => void;
+  /** Seconds left in a running self-timer countdown; null when idle. */
+  countdown?: number | null;
+  /** Cancel a running countdown. */
+  onCancelCountdown?: () => void;
   /** Flip the camera; when set, a floating switch button overlays the preview. */
   onSwitchCamera?: () => void;
   /** Disable the floating switch button (e.g. while the camera is restarting). */
@@ -81,6 +89,10 @@ export function CameraCapture({
   showAngleDemo = false,
   onCapture,
   captureDisabled = false,
+  timerEnabled = false,
+  onToggleTimer,
+  countdown = null,
+  onCancelCountdown,
   onSwitchCamera,
   switchDisabled = false,
   onRetake,
@@ -91,6 +103,7 @@ export function CameraCapture({
 }: CameraCaptureProps) {
   const showLivePreview = !capturedUrl && status === 'ready';
   const angle = angleStepId ? angleForStep(angleStepId) : null;
+  const countingDown = countdown !== null;
   return (
     <div className={`camera${capturedUrl ? ' camera--captured' : ''}`}>
       <div className="camera__viewport">
@@ -185,9 +198,47 @@ export function CameraCapture({
           </button>
         )}
 
+        {/* Optional 10-second self-timer toggle — a small pill under the camera
+            switch. Off by default; stays armed between steps once enabled. */}
+        {showLivePreview && onToggleTimer && (
+          <button
+            type="button"
+            className={`camera__timer${timerEnabled ? ' camera__timer--on' : ''}`}
+            onClick={onToggleTimer}
+            disabled={countingDown}
+            aria-pressed={timerEnabled}
+            aria-label="טיימר 10 שניות"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="13.5" r="7" fill="none" stroke="currentColor" strokeWidth="1.8" />
+              <path
+                d="M12 13.5V10M9.8 3.5h4.4M12 3.5v3"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+            <span>10</span>
+          </button>
+        )}
+
+        {/* Running countdown: a large number over the live preview (which stays
+            visible for positioning) and a cancel button in the shutter's place. */}
+        {showLivePreview && countingDown && (
+          <>
+            <div className="camera__countdown" role="timer" aria-live="off">
+              <span key={countdown}>{countdown}</span>
+            </div>
+            <button type="button" className="camera__countdown-cancel" onClick={onCancelCountdown}>
+              ביטול
+            </button>
+          </>
+        )}
+
         {/* iPhone-style shutter, fixed to the bottom-centre of the viewport so
             it's always reachable without scrolling. */}
-        {showLivePreview && onCapture && (
+        {showLivePreview && onCapture && !countingDown && (
           <button
             type="button"
             className="camera__shutter"

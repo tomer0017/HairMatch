@@ -22,6 +22,7 @@ const DARK_PIXEL_THRESHOLD = 70; // "dark" pixel
 const VERY_DARK_PIXEL_THRESHOLD = 50; // "very dark" pixel
 const SHADOW_CLIP_THRESHOLD = 16; // crushed-to-black shadow
 const OVEREXPOSED_PIXEL_THRESHOLD = 244; // blown-out / clipped-white pixel
+const WELL_LIT_PIXEL_THRESHOLD = 110; // clearly lit surface (wall, skin, clothing)
 
 /** Aggregate luminance statistics for a region of pixels. */
 export interface LuminanceStats {
@@ -37,6 +38,8 @@ export interface LuminanceStats {
   shadowClipRatio: number;
   /** Share of pixels clipped near pure white, 0–1. */
   overExposedRatio: number;
+  /** Share of clearly lit pixels (≥ WELL_LIT_PIXEL_THRESHOLD), 0–1. */
+  wellLitRatio: number;
 }
 
 /** A pixel-space rectangle, half-open: [x0, x1) × [y0, y1). */
@@ -77,6 +80,7 @@ function statsForRegion(
   let veryDark = 0;
   let shadowClipped = 0;
   let overExposed = 0;
+  let wellLit = 0;
   let pixelCount = 0;
 
   for (let y = y0; y < y1; y += 1) {
@@ -89,6 +93,7 @@ function statsForRegion(
       if (y601 < VERY_DARK_PIXEL_THRESHOLD) veryDark += 1;
       if (y601 < SHADOW_CLIP_THRESHOLD) shadowClipped += 1;
       if (y601 >= OVEREXPOSED_PIXEL_THRESHOLD) overExposed += 1;
+      if (y601 >= WELL_LIT_PIXEL_THRESHOLD) wellLit += 1;
       pixelCount += 1;
     }
   }
@@ -101,6 +106,7 @@ function statsForRegion(
       veryDarkPixelRatio: 0,
       shadowClipRatio: 0,
       overExposedRatio: 0,
+      wellLitRatio: 0,
     };
   }
 
@@ -111,7 +117,47 @@ function statsForRegion(
     veryDarkPixelRatio: veryDark / pixelCount,
     shadowClipRatio: shadowClipped / pixelCount,
     overExposedRatio: overExposed / pixelCount,
+    wellLitRatio: wellLit / pixelCount,
   };
+}
+
+/** Why a hair-filled centre ROI (back / top views) measured as dark. */
+export type DarkCenterReason = 'darkHair' | 'backlit' | 'dark';
+
+/** Thresholds for telling dark hair apart from a genuinely dark photo. */
+const DARK_CENTER = {
+  /** Share of the whole frame that must be clearly lit to prove the room has light. */
+  frameWellLitRatioMin: 0.15,
+  /** Above this share of crushed-black centre pixels the hair has no usable detail. */
+  centerShadowClipMax: 0.5,
+  /** Blown-out background + near-black centre ⇒ the light is behind the subject. */
+  backlitFrameOverExposedRatio: 0.2,
+  backlitCenterMedianBelow: 40,
+};
+
+/**
+ * Back / top views have no face to measure, and the centre of the frame is
+ * mostly hair — so naturally dark hair makes the centre ROI "dark" even in a
+ * well-lit room. When the centre measures dark, decide what that really means:
+ *
+ * - 'dark'     : nothing in the frame is clearly lit — the room itself is dark.
+ * - 'backlit'  : the surroundings are bright but the hair is crushed to black
+ *                (light behind the subject) — the hair can't be evaluated.
+ * - 'darkHair' : the surroundings are clearly lit and the hair keeps usable
+ *                detail — the darkness is just the hair colour. Valid photo.
+ *
+ * Shared by the live preview and the post-capture check so they always agree.
+ */
+export function explainDarkCenter(center: LuminanceStats, frame: LuminanceStats): DarkCenterReason {
+  if (frame.wellLitRatio < DARK_CENTER.frameWellLitRatioMin) return 'dark';
+  if (center.shadowClipRatio > DARK_CENTER.centerShadowClipMax) return 'backlit';
+  if (
+    frame.overExposedRatio > DARK_CENTER.backlitFrameOverExposedRatio &&
+    center.median < DARK_CENTER.backlitCenterMedianBelow
+  ) {
+    return 'backlit';
+  }
+  return 'darkHair';
 }
 
 /**

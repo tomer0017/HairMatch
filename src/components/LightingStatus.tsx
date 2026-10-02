@@ -6,14 +6,19 @@ const STATUS: Record<Exclude<LightingState, 'pending'>, { dot: string; label: st
   ok: { dot: '🟢', label: 'תאורה תקינה', tone: 'ok' },
   low: { dot: '🟠', label: 'יש מעט תאורה', tone: 'low' },
   dark: { dot: '🔴', label: 'אין מספיק תאורה', tone: 'bad' },
+  backlit: { dot: '🔴', label: 'האור מגיע מאחור', tone: 'bad' },
   bright: { dot: '🔴', label: 'התאורה חזקה מדי', tone: 'bad' },
 };
 
 /** Prominent blocking-warning copy, shown only for the red states. */
-const WARNING: Record<'dark' | 'bright', { title: string; body: string }> = {
+const WARNING: Record<'dark' | 'backlit' | 'bright', { title: string; body: string }> = {
   dark: {
     title: 'תאורה חלשה או רקע כהה מדי',
     body: 'אנא עברי למקום מואר יותר או הצטלמי מול רקע בהיר.',
+  },
+  backlit: {
+    title: 'האור מגיע מאחור והשיער יוצא חשוך',
+    body: 'עמדי כך שמקור האור (חלון או מנורה) יאיר על השיער ולא יהיה מאחורייך.',
   },
   bright: {
     title: 'התמונה צפויה להיות שרופה',
@@ -41,7 +46,7 @@ export function LightingBadge({ state }: { state: LightingState }) {
  * (too dark or overexposed). Renders nothing otherwise.
  */
 export function LightingWarning({ state }: { state: LightingState }) {
-  if (state !== 'dark' && state !== 'bright') return null;
+  if (state !== 'dark' && state !== 'backlit' && state !== 'bright') return null;
   const { title, body } = WARNING[state];
   return (
     <div className="lighting-warning" role="alert">

@@ -8,6 +8,7 @@ import { useCamera } from '../hooks/useCamera';
 import { useLiveLighting } from '../hooks/useLiveLighting';
 import { usePhotoValidation } from '../hooks/usePhotoValidation';
 import { getStepValidation } from '../config/validation';
+import { primeTimerFeedback, timerTick } from '../utils/timerFeedback';
 import type { CapturedPhoto, PhotoStep } from '../types';
 import photographyGuide from '../assets/photography-guide.jpg';
 import './CaptureFlow.css';
@@ -25,6 +26,13 @@ interface CaptureFlowProps {
   /** Cancel out of the very first step back to the welcome screen. */
   onBackToLanding: () => void;
 }
+
+/** Length of the optional self-timer countdown. */
+const TIMER_SECONDS = 10;
+
+// The self-timer choice lives for the whole page session (not just one mount),
+// so it also survives leaving to the review screen and coming back to retake.
+let timerPreference = false;
 
 /**
  * Drives the guided capture experience one step at a time while keeping the
@@ -52,6 +60,10 @@ export function CaptureFlow({
   // The back view needs a second person to take it, so an extra guidance popup
   // is shown before its capture screen. Dismissed via its "המשך" button.
   const [backGuideDismissed, setBackGuideDismissed] = useState(false);
+  // Optional 10-second self-timer: whether it's armed, and the seconds left
+  // while a countdown is running (null = no countdown in progress).
+  const [timerEnabled, setTimerEnabled] = useState(timerPreference);
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   const step = steps[currentIndex];
   const stepValidation = getStepValidation(step.id);
@@ -109,8 +121,9 @@ export function CaptureFlow({
     status === 'ready' && captured === null,
     { useFace: stepValidation.requireFace, stepId: step.id, facing },
   );
-  // Block capture while the scene is too dark or overexposed (red states).
-  const lightingBlocked = lightingState === 'dark' || lightingState === 'bright';
+  // Block capture while the scene is too dark, backlit or overexposed (red states).
+  const lightingBlocked =
+    lightingState === 'dark' || lightingState === 'backlit' || lightingState === 'bright';
 
   // Hold the temp object URL of an unconfirmed capture so we can revoke it.
   const pendingUrlRef = useRef<string | null>(null);
@@ -150,6 +163,49 @@ export function CaptureFlow({
     await validate(frame.blob, stepValidation);
   }, [capture, validate, lightingBlocked, stepValidation]);
 
+  // The countdown always fires the latest capture handler (same pipeline as a
+  // direct shutter tap) without restarting whenever that handler changes.
+  const handleCaptureRef = useRef(handleCapture);
+  handleCaptureRef.current = handleCapture;
+
+  // Self-timer countdown: 10 → 1, one tick per second, then capture.
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown <= 3) timerTick();
+    const id = window.setTimeout(() => {
+      if (countdown > 1) {
+        setCountdown(countdown - 1);
+      } else {
+        setCountdown(null);
+        void handleCaptureRef.current();
+      }
+    }, 1000);
+    return () => window.clearTimeout(id);
+  }, [countdown]);
+
+  // Abort a running countdown if the live preview goes away underneath it.
+  useEffect(() => {
+    if (status !== 'ready') setCountdown(null);
+  }, [status]);
+
+  const handleShutter = useCallback(() => {
+    // A countdown is already running — ignore repeated taps.
+    if (countdown !== null || lightingBlocked) return;
+    if (timerEnabled) {
+      primeTimerFeedback();
+      setCountdown(TIMER_SECONDS);
+      return;
+    }
+    void handleCapture();
+  }, [countdown, lightingBlocked, timerEnabled, handleCapture]);
+
+  const handleToggleTimer = useCallback(() => {
+    setTimerEnabled((enabled) => {
+      timerPreference = !enabled;
+      return !enabled;
+    });
+  }, []);
+
   const handleRetake = useCallback(() => {
     clearPending();
     setCaptured(null);
@@ -161,6 +217,7 @@ export function CaptureFlow({
       // The confirmed photo's URL now belongs to app state — don't revoke it.
       pendingUrlRef.current = null;
       setCaptured(null);
+      setCountdown(null);
       reset();
       // Re-arm the back-view popup so it shows again on each entry to that step.
       setBackGuideDismissed(false);
@@ -243,10 +300,14 @@ export function CaptureFlow({
         angleStepId={step.id}
         angleLabel={step.label}
         showAngleDemo={angleDemoVisible}
-        onCapture={() => void handleCapture()}
+        onCapture={handleShutter}
         captureDisabled={lightingBlocked}
+        timerEnabled={timerEnabled}
+        onToggleTimer={handleToggleTimer}
+        countdown={countdown}
+        onCancelCountdown={() => setCountdown(null)}
         onSwitchCamera={() => void switchCamera()}
-        switchDisabled={status === 'requesting'}
+        switchDisabled={status === 'requesting' || countdown !== null}
         onRetake={captured ? handleRetake : undefined}
         onContinue={captured ? handleContinue : undefined}
         continueLabel={continueLabel}

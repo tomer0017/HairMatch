@@ -5,7 +5,7 @@ import type {
   StepValidationConfig,
   ValidationIssue,
 } from '../types';
-import { regionStats, type Rect } from './brightness';
+import { explainDarkCenter, regionStats, type DarkCenterReason, type Rect } from './brightness';
 import { detectFace, isFaceDetectionAvailable, type FaceDetectionResult } from './faceDetection';
 import { centerPortraitRect, centerRect, faceCoreRect, faceHairRect } from './roi';
 import { analyzeSharpness } from './sharpness';
@@ -65,8 +65,13 @@ const THRESHOLDS = {
   minShortEdge: 600,
 };
 
+/** Darkness copy for hair-only steps (back / top) — never blames the hair or background. */
+const DARK_ROOM_MESSAGE = 'התמונה חשוכה מדי. עברי למקום מואר יותר ונסי שוב.';
+
 const MESSAGES: Record<ValidationIssue['code'], string> = {
   dark: 'תאורה חלשה או רקע כהה מדי. אנא עברי למקום מואר יותר או הצטלמי מול רקע בהיר.',
+  backlit:
+    'האור מגיע מאחור ולכן השיער יוצא חשוך. עמדי כך שמקור האור (חלון או מנורה) יאיר על השיער ולא יהיה מאחורייך, ונסי שוב.',
   bright: 'התמונה בהירה מדי. נסי להימנע משמש ישירה או תאורה חזקה.',
   blurry: 'התמונה מטושטשת מדי. אנא החזיקי את המצלמה יציבה וצלמי שוב.',
   resolution: 'איכות התמונה נמוכה מדי. אנא צלמי שוב.',
@@ -203,9 +208,13 @@ export async function analyzeImageQuality(
   //   which is immune to dark hair / dark background. If that subject is well
   //   lit, the photo passes even with a dark backdrop. Only when the subject
   //   itself is dim do we fall back to the full face+hair ROI verdict.
-  // - Otherwise (no face, or back views) we keep the stricter combined test on
-  //   the centre/portrait ROI.
+  // - Face steps without a detected face keep the stricter combined test on the
+  //   portrait ROI.
+  // - Back / top views ('center' mode): the centre ROI is mostly hair, so dark
+  //   hair alone trips the combined test. A dark centre is only a failure when
+  //   the room really is dark or the hair is backlit — never for hair colour.
   let tooDark: boolean;
+  let darkCenterReason: DarkCenterReason | null = null;
   if (config.lightingMode === 'face' && faceAccepted) {
     const core = regionStats(
       small.data,
@@ -215,6 +224,9 @@ export async function analyzeImageQuality(
     );
     const subjectWellLit = core.average >= d.averageBelow && core.median >= d.medianBelow;
     tooDark = !subjectWellLit && combinedDark(roi);
+  } else if (config.lightingMode === 'center') {
+    darkCenterReason = combinedDark(roi) ? explainDarkCenter(roi, wholeFrame) : null;
+    tooDark = darkCenterReason === 'dark' || darkCenterReason === 'backlit';
   } else {
     tooDark = combinedDark(roi);
   }
@@ -235,7 +247,14 @@ export async function analyzeImageQuality(
 
   const issues: ValidationIssue[] = [];
   if (personMissing) issues.push({ code: 'person', message: MESSAGES.person });
-  if (tooDark) issues.push({ code: 'dark', message: MESSAGES.dark });
+  if (darkCenterReason === 'backlit') {
+    issues.push({ code: 'backlit', message: MESSAGES.backlit });
+  } else if (tooDark) {
+    issues.push({
+      code: 'dark',
+      message: config.lightingMode === 'center' ? DARK_ROOM_MESSAGE : MESSAGES.dark,
+    });
+  }
   if (overexposed) issues.push({ code: 'bright', message: MESSAGES.bright });
   if (blurry) issues.push({ code: 'blurry', message: MESSAGES.blurry });
   if (shortEdge < THRESHOLDS.minShortEdge) {
@@ -273,6 +292,9 @@ export async function analyzeImageQuality(
       roiOverexposedPixelRatio: roi.overExposedRatio,
       wholeFrameAverage: wholeFrame.average,
       wholeFrameDarkPixelRatio: wholeFrame.darkPixelRatio,
+      wholeFrameWellLitRatio: wholeFrame.wellLitRatio,
+      subjectRoiShadowClipRatio: roi.shadowClipRatio,
+      darkCenterReason,
       laplacianVariance,
       edgeDensity,
       sharpnessScore,
